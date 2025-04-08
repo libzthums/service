@@ -1,0 +1,33 @@
+const express = require("express");
+const bodyParser = require("body-parser");
+const app = express();
+const port = process.env.PORT || 4005;
+const cors = require("cors");
+
+const service = require("./src/routes/service");
+const docloader = require("./src/routes/DocUploader");
+const docreader = require("./src/routes/DocReader");
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(cors());
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept",
+    "multipart/form-data"
+  );
+  next();
+});
+
+// Use the data route
+app.use("/api/service", service);
+app.use("/api/docloader", docloader);
+app.use("/api/docreader", docreader);
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
