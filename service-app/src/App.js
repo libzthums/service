@@ -9,6 +9,7 @@ import DocDetail from "./components/docDetail"
 import InsertDocData from "./components/insertDocData";
 import UploadPage from "./components/uploadPage"
 import Reissue from "./components/reIssue";
+import TotalPage from "./components/totalPage";
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
       <Sidebar />
       <div className="content-wrapper p-4">
         <Routes>
+          <Route path="/totalPage" element={<TotalPage/>}/>
           <Route path="/reissuePage" element={<Reissue/>}/>
           <Route path="/uploadPage" element={<UploadPage/>}/>
           <Route path="/insertDocData" element={<InsertDocData/>}/>

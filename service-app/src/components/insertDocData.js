@@ -146,6 +146,15 @@ export default function InsertDocData() {
           accept=".xlsx, .xls"
           onChange={handleSingleFileChange}
         />
+        <div>
+          <small>
+            If you don't have a template, please download an Excel template{" "}
+            <a href="/template.xlsx" download>
+              HERE
+            </a>
+          </small>
+        </div>
+
         <div className="d-flex justify-content-center mt-3">
           <button
             className="btn btn-primary me-2"

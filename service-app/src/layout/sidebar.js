@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { Button } from "react-bootstrap";
 
 export default function Sidebar() {
-  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [isReissueOpen, setReissueOpen] = useState(false);
+  const [isTotalOpen, setTotalOpen] = useState(false);
 
   return (
     <aside className="main-sidebar sidebar-light-primary elevation-4">
@@ -19,28 +20,27 @@ export default function Sidebar() {
             {/* Upload */}
             <NavItem to="/uploadPage" icon="fa fa-file" label="Upload" />
 
-            {/* Dropdown Menu */}
-            <li className={`nav-item ${isDropdownOpen ? "menu-open" : ""}`}>
+            {/* Reissue Dropdown */}
+            <li className={`nav-item ${isReissueOpen ? "menu-open" : ""}`}>
               <Button
                 href="#"
                 className="nav-link d-flex justify-content-between align-items-center"
                 onClick={(e) => {
                   e.preventDefault();
-                  setDropdownOpen(!isDropdownOpen);
+                  setReissueOpen(!isReissueOpen);
                 }}>
                 <span>
                   <i className="nav-icon fas fa-sync-alt"></i> Reissue
                 </span>
                 <i
                   className={`fas fa-angle-${
-                    isDropdownOpen ? "down" : "left"
+                    isReissueOpen ? "down" : "left"
                   }`}></i>
               </Button>
 
-              {/* Submenu */}
               <ul
                 className={`nav nav-treeview ${
-                  isDropdownOpen ? "d-block" : "d-none"
+                  isReissueOpen ? "d-block" : "d-none"
                 }`}>
                 <NavItem
                   to="/reissuePage"
@@ -56,6 +56,41 @@ export default function Sidebar() {
                   to="/reissuePage"
                   state={{ status: 3 }}
                   label="Expired Issue"
+                />
+              </ul>
+            </li>
+
+            {/* Total Dropdown */}
+            <li className={`nav-item ${isTotalOpen ? "menu-open" : ""}`}>
+              <Button
+                href="#"
+                className="nav-link d-flex justify-content-between align-items-center"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setTotalOpen(!isTotalOpen);
+                }}>
+                <span>
+                  <i className="nav-icon fas fa-list"></i> Total
+                </span>
+                <i
+                  className={`fas fa-angle-${
+                    isTotalOpen ? "down" : "left"
+                  }`}></i>
+              </Button>
+
+              <ul
+                className={`nav nav-treeview ${
+                  isTotalOpen ? "d-block" : "d-none"
+                }`}>
+                <NavItem
+                  to="/totalPage"
+                  state={{ status: 1 }}
+                  label="Per Month"
+                />
+                <NavItem
+                  to="/totalPage"
+                  state={{ status: 2 }}
+                  label="Per Year"
                 />
               </ul>
             </li>
