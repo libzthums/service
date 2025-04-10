@@ -39,24 +39,39 @@ export default function InsertDocData() {
       }
 
       // Map Excel columns to required fields
-      const mappedData = jsonData.map((row) => ({
-        DeviceName: row.DeviceName || row["Device Name"] || "",
-        serialNumber: row.serialNumber || row["Serial Number"] || "",
-        contractNo: row.contractNo || row["Contract No"] || "",
-        divisionID: row.divisionID || row["Division ID"] || "",
-        price: parseFloat(
-          row.price ||
-            row.Price ||
-            row["Price "] ||
-            row["price "] ||
-            row["PRICE"] ||
-            "0"
-        ),
-        startDate: row.startDate || row["Start Date"] || "",
-        endDate: row.endDate || row["End Date"] || "",
-        vendorName: row.vendorName || row["Vendor Name"] || "",
-        vendorPhone: row.vendorPhone || row["Vendor Phone"] || "",
-      }));
+      const mappedData = jsonData.map((row) => {
+        const parseDate = (value) => {
+          if (!value) return "";
+          if (typeof value === "number") {
+            // Convert Excel serial number to JS date string
+            const excelDate = XLSX.SSF
+              ? XLSX.SSF.format("yyyy-mm-dd", value)
+              : new Date((value - 25569) * 86400 * 1000)
+                  .toISOString()
+                  .split("T")[0];
+            return excelDate;
+          }
+          return value; // Assume it's already a string
+        };
+
+        return {
+          DeviceName: row.DeviceName || row["Device Name"] || "",
+          serialNumber: row.serialNumber || row["Serial Number"] || "",
+          contractNo: row.contractNo || row["Contract Number"] || "",
+          divisionID: row.divisionID || row["Division ID"] || "",
+          price: parseFloat(
+            row.price ||
+              row.Price ||
+              row["Price"] ||
+              row["price"] ||
+              row["PRICE"] ||
+              "0"
+          ),
+          startDate: parseDate(row.startDate || row["Issue Date"]),
+          endDate: parseDate(row.endDate || row["Expire Date"]),
+          vendorName: row.vendorName || row["Vendor Name"] || "",
+        };
+      });
 
       setPreviewData(mappedData);
     };

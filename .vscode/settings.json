@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "blackadduser",
         "DATEDIFF",
         "defval",
         "describedby",
@@ -16,7 +17,9 @@
         "Peryear",
         "pushmenu",
         "recordset",
+        "registerroute",
         "treeview",
-        "updatedata"
+        "updatedata",
+        "userlogin"
     ]
 }
