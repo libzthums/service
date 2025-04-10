@@ -15,7 +15,11 @@ import Login from "./components/Login";
 
 // ProtectedRoute Component
 const ProtectedRoute = ({ children }) => {
-  const { user } = useUser();
+  const { user, loading } = useUser();
+
+  if (loading) {
+    return <div className="text-center mt-5">Loading...</div>;
+  }
 
   if (!user) {
     return <Navigate to="/login" />;

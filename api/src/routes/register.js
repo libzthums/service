@@ -4,6 +4,10 @@ const { connectDB, sql } = require("../db/sql");
 
 const router = express.Router();
 
+router.get("/", (req, res) => {
+  res.render("register"); // Render the register.ejs view
+});
+
 // Handle POST request for registering a new user
 router.post("/", async (req, res) => {
   const { userName, userPassword } = req.body;

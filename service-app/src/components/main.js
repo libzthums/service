@@ -85,7 +85,7 @@ export default function Main() {
     { field: "DeviceName", headerName: "Device Name", flex: 1, minWidth: 120 },
     {
       field: "serialNumber",
-      headerName: "Serial Number",
+      headerName: "S/N",
       flex: 1,
       minWidth: 120,
     },

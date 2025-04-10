@@ -123,6 +123,12 @@ export default function TotalPage() {
     }
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
+    const options = { day: "2-digit", month: "short", year: "numeric" };
+    return new Date(dateStr).toLocaleDateString("en-GB", options);
+  };
+
   return (
     <div className="p-3">
       <h4>
@@ -155,6 +161,8 @@ export default function TotalPage() {
             <th>Division</th>
             <th>Monthly charge</th>
             <th>Vendor</th>
+            <th>Date of issue</th>
+            <th>Date of expire</th>
             <th>Status</th>
             <th>View</th>
           </tr>
@@ -181,6 +189,8 @@ export default function TotalPage() {
                 <td>{item.divisionName}</td>
                 <td>{item.monthlyCharge.toLocaleString()}</td>
                 <td>{item.vendorName}</td>
+                <td>{formatDate(item.startDate)}</td>
+                <td>{formatDate(item.endDate)}</td>
                 <td>
                   <Badge bg={getStatusVariant(item.expireStatusName)}>
                     {item.expireStatusName}

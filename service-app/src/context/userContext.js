@@ -4,6 +4,7 @@ const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check if there's a token in localStorage on app initialization
@@ -13,10 +14,11 @@ export const UserProvider = ({ children }) => {
       // If a token exists and user data exists in localStorage, set the user
       setUser(JSON.parse(userData));
     }
+    setLoading(false);
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, setUser }}>
+    <UserContext.Provider value={{ user, setUser, loading }}>
       {children}
     </UserContext.Provider>
   );
