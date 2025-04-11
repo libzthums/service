@@ -5,20 +5,44 @@ const UserContext = createContext();
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeDivision, setActiveDivision] = useState(null);
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    // Check if there's a token in localStorage on app initialization
-    const token = localStorage.getItem("token");
+    const storedToken = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
-    if (token && userData) {
-      // If a token exists and user data exists in localStorage, set the user
-      setUser(JSON.parse(userData));
+
+    if (storedToken && userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      setToken(storedToken);
+
+      if (parsedUser.divisionIDs && parsedUser.divisionIDs.length > 0) {
+        const savedDivisionID = localStorage.getItem("activeDivisionID");
+        const index = savedDivisionID
+          ? parsedUser.divisionIDs.indexOf(parseInt(savedDivisionID))
+          : 0;
+
+        setActiveDivision({
+          id: parsedUser.divisionIDs[index] ?? parsedUser.divisionIDs[0],
+          name: parsedUser.divisionNames[index] ?? parsedUser.divisionNames[0],
+        });
+      }
     }
+
     setLoading(false);
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, setUser, loading }}>
+    <UserContext.Provider
+      value={{
+        user,
+        setUser,
+        token,
+        loading,
+        activeDivision,
+        setActiveDivision,
+      }}>
       {children}
     </UserContext.Provider>
   );

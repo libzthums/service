@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-// import { Button } from "react-bootstrap";
+import { useParams, useNavigate } from "react-router-dom";
+import { Button } from "react-bootstrap";
 import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
 import axios from "axios";
@@ -8,7 +8,7 @@ import { UrlContext } from "../router/route";
 
 export default function DocDetail() {
   const { serviceID } = useParams();
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
   const { url } = useContext(UrlContext);
 
   const [prDocs, setPrDocs] = useState([]);
@@ -37,9 +37,9 @@ export default function DocDetail() {
 
   return (
     <div className="p-4">
-      {/* <Button variant="secondary" onClick={() => navigate("/")}>
+      <Button variant="secondary" onClick={() => navigate(-1)}>
         ← Back
-      </Button> */}
+      </Button>
       <h2 className="mt-4 text-2xl font-semibold">Document View</h2>
 
       <Tabs

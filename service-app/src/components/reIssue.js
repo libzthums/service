@@ -116,6 +116,7 @@ export default function Reissue() {
     { field: "DeviceName", headerName: "Device", flex: 1, minWidth: 100 },
     { field: "serialNumber", headerName: "S/N", flex: 1, minWidth: 100 },
     { field: "contractNo", headerName: "Contract", flex: 1, minWidth: 100 },
+    { field: "divisionName", headerName: "Division", flex: 1, minWidth: 100 },
     { field: "price", headerName: "Total Price", flex: 1, minWidth: 100 },
     {
       field: "vendorName",

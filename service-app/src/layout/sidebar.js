@@ -1,10 +1,22 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
+import { useUser } from "../context/userContext";
 
 export default function Sidebar() {
   const [isReissueOpen, setReissueOpen] = useState(false);
   const [isTotalOpen, setTotalOpen] = useState(false);
+  const { user, activeDivision, setActiveDivision } = useUser();
+
+  const handleDivisionChange = (e) => {
+    const newID = parseInt(e.target.value);
+    const index = user.divisionIDs.indexOf(newID);
+    setActiveDivision({
+      id: newID,
+      name: user.divisionNames[index],
+    });
+    localStorage.setItem("activeDivisionID", newID); // persist selected division
+  };
 
   return (
     <aside className="main-sidebar sidebar-light-primary elevation-4">
@@ -14,6 +26,35 @@ export default function Sidebar() {
       <div className="sidebar">
         <nav className="mt-2">
           <ul className="nav nav-pills nav-sidebar flex-column">
+            {/* User Info */}
+            <li className="nav-header">User</li>
+            <li className="nav-item">
+              <span className="nav-link">
+                <strong>{user?.name}</strong>
+              </span>
+              <span className="nav-link">{user?.permission}</span>
+            </li>
+
+            {/* Current Division Info */}
+            <li className="nav-item px-2">
+              <strong className="text-muted small">Division:</strong>
+              <div>{activeDivision?.name}</div>
+            </li>
+
+            {/* Division Switcher */}
+            <li className="nav-item px-2 mb-2">
+              <Form.Select
+                value={activeDivision?.id || ""}
+                onChange={handleDivisionChange}
+                className="form-control">
+                {user?.divisionIDs?.map((id, idx) => (
+                  <option key={id} value={id}>
+                    {user.divisionNames?.[idx] || `Division ${id}`}
+                  </option>
+                ))}
+              </Form.Select>
+            </li>
+
             {/* Dashboard */}
             <NavItem to="/" icon="fas fa-home" label="Dashboard" />
 

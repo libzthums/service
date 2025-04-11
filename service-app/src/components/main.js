@@ -95,6 +95,12 @@ export default function Main() {
       flex: 1,
       minWidth: 120,
     },
+    {
+      field: "divisionName",
+      headerName: "Division",
+      flex: 1,
+      minWidth: 120,
+    },
     { field: "price", headerName: "Total Price", flex: 1, minWidth: 120 },
     {
       field: "monthly_charge",
@@ -166,7 +172,6 @@ export default function Main() {
         </Button>
       )}
 
-      {/* MUI DataGrid */}
       <div
         className="mt-3"
         style={{ height: 500, width: "100%", overflowX: "auto" }}>

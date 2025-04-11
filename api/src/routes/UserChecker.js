@@ -60,11 +60,11 @@ router.post("/", async (req, res) => {
     function getPermissionLabel(code) {
       switch (code) {
         case 1:
-          return "viewer";
+          return "Viewer";
         case 2:
-          return "admin";
+          return "Admin";
         case 3:
-          return "manager";
+          return "Manager";
         default:
           return "Unknown";
       }
@@ -74,7 +74,7 @@ router.post("/", async (req, res) => {
     const token = jwt.sign(
       { userID: user.userID, userName: user.userName },
       JWT_SECRET,
-      { expiresIn: "10h" }
+      { expiresIn: "5h" }
     );
 
     res.json({

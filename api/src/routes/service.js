@@ -101,6 +101,7 @@ router.get("/", async (req, res) => {
       service.endDate, 
       service.vendorName, 
       service.vendorPhone,
+      division.divisionID,
       division.divisionName,
       MAX(sd.monthly_charge) AS monthly_charge
     FROM Service AS service
@@ -110,7 +111,7 @@ router.get("/", async (req, res) => {
       service.serviceID, service.DeviceName, service.serialNumber, 
       service.contractNo, service.price, service.startDate, 
       service.endDate, service.vendorName, service.vendorPhone, 
-      division.divisionName
+      division.divisionID,division.divisionName
     `;
 
     const data = await db.connectAndQuery(query);

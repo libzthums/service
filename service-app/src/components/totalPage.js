@@ -2,7 +2,8 @@ import React, { useContext, useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { UrlContext } from "../router/route";
 import { Link, useLocation } from "react-router-dom";
-import { Button, Badge, Table } from "react-bootstrap";
+import { Button, Badge } from "react-bootstrap";
+import { DataGrid } from "@mui/x-data-grid";
 
 export default function TotalPage() {
   const { url } = useContext(UrlContext);
@@ -25,45 +26,60 @@ export default function TotalPage() {
           const end = new Date(item.endDate);
           const charge = Number(item.monthly_charge);
 
-          let current = new Date(start);
+          const isExpiringSoon =
+            item.expireStatusName?.toLowerCase() === "expire in 3 months";
 
-          while (current <= end) {
-            const currentMonth = current.getMonth();
-            const currentYear = current.getFullYear();
+          const monthsDiff =
+            (end.getFullYear() - start.getFullYear()) * 12 +
+            (end.getMonth() - start.getMonth());
 
-            const isExpiringSoon =
-              item.expireStatusName?.toLowerCase() === "expire in 3 months";
+          const isPerMonth =
+            status === 1 &&
+            (item.expireStatusName?.toLowerCase() === "issued" ||
+              isExpiringSoon);
 
-            const isPerMonth =
-              status === 1 &&
-              (item.expireStatusName?.toLowerCase() === "issued" ||
-                isExpiringSoon);
+          const isPerYear =
+            status === 2 && (monthsDiff >= 11 || isExpiringSoon);
 
-            const monthsDiff =
-              (end.getFullYear() - start.getFullYear()) * 12 +
-              (end.getMonth() - start.getMonth());
+          if (status === 1) {
+            let current = new Date(start);
+            while (current <= end) {
+              const currentMonth = current.getMonth();
+              const currentYear = current.getFullYear();
+              const inMonth = currentMonth === month && currentYear === year;
 
-            const isPerYear =
-              status === 2 && (monthsDiff >= 11 || isExpiringSoon);
+              if (isPerMonth && inMonth) {
+                result.push({
+                  ...item,
+                  id: `${item.serviceID}-${currentMonth}`, // required for DataGrid
+                  displayMonth: new Date(current),
+                  monthlyCharge: charge,
+                });
+              }
 
-            const matchesType = isPerMonth || isPerYear;
+              current.setMonth(current.getMonth() + 1);
+            }
+          } else if (status === 2 && isPerYear) {
+            const startY = start.getFullYear();
+            const endY = end.getFullYear();
 
-            const inMonth = currentMonth === month && currentYear === year;
+            if (startY <= year && endY >= year) {
+              const monthsInYear = Array.from(
+                { length: 12 },
+                (_, i) => new Date(year, i)
+              );
+              const validMonths = monthsInYear.filter(
+                (m) => m >= start && m <= end
+              );
+              const monthsCount = validMonths.length;
 
-            const inYear = currentYear === year;
-
-            const shouldInclude =
-              matchesType && (status === 1 ? inMonth : inYear);
-
-            if (shouldInclude) {
               result.push({
                 ...item,
-                displayMonth: new Date(current),
-                monthlyCharge: charge,
+                id: `${item.serviceID}-${year}`,
+                displayMonth: new Date(year, 0),
+                monthlyCharge: charge * monthsCount,
               });
             }
-
-            current.setMonth(current.getMonth() + 1);
           }
         });
 
@@ -129,8 +145,56 @@ export default function TotalPage() {
     return new Date(dateStr).toLocaleDateString("en-GB", options);
   };
 
+  const columns = [
+    { field: "DeviceName", headerName: "Device Name", flex: 1 },
+    { field: "serialNumber", headerName: "S/N", flex: 1 },
+    { field: "contractNo", headerName: "Contract No.", flex: 1 },
+    { field: "divisionName", headerName: "Division", flex: 1 },
+    {
+      field: "monthlyCharge",
+      headerName: "Monthly Charge",
+      flex: 1,
+      renderCell: (params) => params.value.toLocaleString(),
+    },
+    { field: "vendorName", headerName: "Vendor", flex: 1 },
+    {
+      field: "startDate",
+      headerName: "Date of Issue",
+      flex: 1,
+      renderCell: (params) => formatDate(params.value),
+    },
+    {
+      field: "endDate",
+      headerName: "Date of Expire",
+      flex: 1,
+      renderCell: (params) => formatDate(params.value),
+    },
+    {
+      field: "expireStatusName",
+      headerName: "Status",
+      flex: 1,
+      renderCell: (params) => (
+        <Badge bg={getStatusVariant(params.value)}>{params.value}</Badge>
+      ),
+    },
+    {
+      field: "view",
+      headerName: "View",
+      flex: 1,
+      renderCell: (params) => (
+        <Link to={`/docDetail/${params.row.serviceID}`}>
+          <Button variant="info" size="sm">
+            View
+          </Button>
+        </Link>
+      ),
+      sortable: false,
+      filterable: false,
+    },
+  ];
+
   return (
-    <div className="p-3">
+    <div className="p-3 d-flex flex-column" style={{ height: "100%" }}>
       <h4>
         Total cost {status === 1 ? "per month" : "per year"} in {year}
       </h4>
@@ -151,71 +215,20 @@ export default function TotalPage() {
         </Button>
       </div>
 
-      <Table striped bordered hover responsive>
-        <thead>
-          <tr>
-            {/* <th>Month</th> */}
-            <th>Device name</th>
-            <th>S/N</th>
-            <th>contractNo.</th>
-            <th>Division</th>
-            <th>Monthly charge</th>
-            <th>Vendor</th>
-            <th>Date of issue</th>
-            <th>Date of expire</th>
-            <th>Status</th>
-            <th>View</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredData.length === 0 ? (
-            <tr>
-              <td colSpan="9" className="text-center">
-                No records found.
-              </td>
-            </tr>
-          ) : (
-            filteredData.map((item, index) => (
-              <tr key={`${item.serviceID}-${index}`}>
-                {/* <td>
-                  {item.displayMonth.toLocaleString("en-US", {
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </td> */}
-                <td>{item.DeviceName}</td>
-                <td>{item.serialNumber}</td>
-                <td>{item.contractNo}</td>
-                <td>{item.divisionName}</td>
-                <td>{item.monthlyCharge.toLocaleString()}</td>
-                <td>{item.vendorName}</td>
-                <td>{formatDate(item.startDate)}</td>
-                <td>{formatDate(item.endDate)}</td>
-                <td>
-                  <Badge bg={getStatusVariant(item.expireStatusName)}>
-                    {item.expireStatusName}
-                  </Badge>
-                </td>
-                <td>
-                  <Link to={`/docDetail/${item.serviceID}`}>
-                    <Button variant="info" size="sm">
-                      View
-                    </Button>
-                  </Link>
-                </td>
-              </tr>
-            ))
-          )}
-          <tr>
-            <td colSpan="5" className="fw-bold">
-              Total {status === 1 ? "monthly" : "yearly"} cost
-            </td>
-            <td colSpan="4" className="fw-bold">
-              {totalPrice.toLocaleString()}
-            </td>
-          </tr>
-        </tbody>
-      </Table>
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        <DataGrid
+          rows={filteredData.length > 0 ? filteredData : []}
+          columns={columns}
+          getRowId={(row) => row.serviceID}
+          pageSize={10}
+          rowsPerPageOptions={[10, 25, 50]}
+        />
+      </div>
+
+      <div className="text-end mt-3 fw-bold fs-5">
+        Total {status === 1 ? "monthly" : "yearly"} cost:
+        {totalPrice.toLocaleString()}
+      </div>
     </div>
   );
 }
