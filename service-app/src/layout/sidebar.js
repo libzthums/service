@@ -28,7 +28,7 @@ export default function Sidebar() {
           <ul className="nav nav-pills nav-sidebar flex-column">
             {/* User Info */}
             <li className="nav-header">User</li>
-            <li className="nav-item">
+            <li className="nav-header">
               <span className="nav-link">
                 <strong>{user?.name}</strong>
               </span>
@@ -36,13 +36,12 @@ export default function Sidebar() {
             </li>
 
             {/* Current Division Info */}
-            <li className="nav-item px-2">
-              <strong className="text-muted small">Division:</strong>
-              <div>{activeDivision?.name}</div>
-            </li>
+            {/* <li className="nav-item px-2">
+              <strong className="text-muted small">Division: {activeDivision?.name}</strong>
+            </li> */}
 
             {/* Division Switcher */}
-            <li className="nav-item px-2 mb-2">
+            <li className="nav-item px-2 mb-2 mt-2 mr-4">
               <Form.Select
                 value={activeDivision?.id || ""}
                 onChange={handleDivisionChange}

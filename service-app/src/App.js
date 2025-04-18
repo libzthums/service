@@ -12,6 +12,7 @@ import Reissue from "./components/reIssue";
 import TotalPage from "./components/totalPage";
 import { UserProvider, useUser } from "./context/userContext";
 import Login from "./components/Login";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // ProtectedRoute Component
 const ProtectedRoute = ({ children }) => {
@@ -30,74 +31,76 @@ const ProtectedRoute = ({ children }) => {
 
 const App = () => {
   return (
-    <UserProvider>
-      <div className="wrapper">
-        <Header />
-        <Sidebar />
-        <div className="content-wrapper p-4">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Main />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/totalPage"
-              element={
-                <ProtectedRoute>
-                  <TotalPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reissuePage"
-              element={
-                <ProtectedRoute>
-                  <Reissue />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/uploadPage"
-              element={
-                <ProtectedRoute>
-                  <UploadPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/insertDocData"
-              element={
-                <ProtectedRoute>
-                  <InsertDocData />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/docDetail/:serviceID"
-              element={
-                <ProtectedRoute>
-                  <DocDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/insert"
-              element={
-                <ProtectedRoute>
-                  <InsertData />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/login" element={<Login />} />
-          </Routes>
+    <ErrorBoundary>
+      <UserProvider>
+        <div className="wrapper">
+          <Header />
+          <Sidebar />
+          <div className="content-wrapper p-4">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Main />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/totalPage"
+                element={
+                  <ProtectedRoute>
+                    <TotalPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reissuePage"
+                element={
+                  <ProtectedRoute>
+                    <Reissue />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/uploadPage"
+                element={
+                  <ProtectedRoute>
+                    <UploadPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/insertDocData"
+                element={
+                  <ProtectedRoute>
+                    <InsertDocData />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/docDetail/:serviceID"
+                element={
+                  <ProtectedRoute>
+                    <DocDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/insert"
+                element={
+                  <ProtectedRoute>
+                    <InsertData />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/login" element={<Login />} />
+            </Routes>
+          </div>
+          <Footer />
         </div>
-        <Footer />
-      </div>
-    </UserProvider>
+      </UserProvider>
+    </ErrorBoundary>
   );
 };
 

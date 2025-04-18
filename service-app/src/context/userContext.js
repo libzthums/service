@@ -5,7 +5,7 @@ const UserContext = createContext();
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeDivision, setActiveDivision] = useState(null);
+  const [activeDivision, setActiveDivisionState] = useState(null);
   const [token, setToken] = useState(null);
 
   useEffect(() => {
@@ -18,20 +18,25 @@ export const UserProvider = ({ children }) => {
       setToken(storedToken);
 
       if (parsedUser.divisionIDs && parsedUser.divisionIDs.length > 0) {
-        const savedDivisionID = localStorage.getItem("activeDivisionID");
-        const index = savedDivisionID
-          ? parsedUser.divisionIDs.indexOf(parseInt(savedDivisionID))
-          : 0;
+        const savedDivisionID = parseInt(localStorage.getItem("activeDivisionID"));
+        let index = parsedUser.divisionIDs.indexOf(savedDivisionID);
 
-        setActiveDivision({
-          id: parsedUser.divisionIDs[index] ?? parsedUser.divisionIDs[0],
-          name: parsedUser.divisionNames[index] ?? parsedUser.divisionNames[0],
+        if (index === -1) index = 0;
+
+        setActiveDivisionState({
+          id: parsedUser.divisionIDs[index],
+          name: parsedUser.divisionNames[index],
         });
       }
     }
 
     setLoading(false);
   }, []);
+
+  const setActiveDivision = ({ id, name }) => {
+    setActiveDivisionState({ id, name });
+    localStorage.setItem("activeDivisionID", id);
+  };
 
   return (
     <UserContext.Provider
@@ -42,7 +47,8 @@ export const UserProvider = ({ children }) => {
         loading,
         activeDivision,
         setActiveDivision,
-      }}>
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

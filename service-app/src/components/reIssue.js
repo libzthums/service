@@ -13,6 +13,7 @@ import {
   Col,
 } from "react-bootstrap";
 import { DataGrid } from "@mui/x-data-grid";
+import { useUser } from "../context/userContext";
 
 export default function Reissue() {
   const { url } = useContext(UrlContext);
@@ -26,13 +27,15 @@ export default function Reissue() {
   const [editData, setEditData] = useState(null);
   const [showReissueModal, setShowReissueModal] = useState(false);
   const [reissueData, setReissueData] = useState(null);
+  const { activeDivision } = useUser();
+  const [filtersApplied, setFiltersApplied] = useState(false);
 
   // Fetch data
   const fetchData = useCallback(() => {
     axios
       .get(url + "service")
       .then((response) => {
-        setData(response.data || []);
+        setData(response.data);
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
@@ -43,43 +46,33 @@ export default function Reissue() {
     fetchData();
   }, [fetchData]);
 
-  // Filter data based on status
   useEffect(() => {
-    let filtered = data;
-    if (status === 1) {
-      filtered = data.filter(
-        (row) => row.expireStatusName?.toLowerCase() === "issued"
-      );
-    } else if (status === 2) {
-      filtered = data.filter(
-        (row) => row.expireStatusName?.toLowerCase() === "expire in 3 months"
-      );
-    } else if (status === 3) {
-      filtered = data.filter(
-        (row) =>
-          row.expireStatusName?.toLowerCase() === "just expired" ||
-          row.expireStatusName?.toLowerCase() === "expired"
-      );
-    }
-    setFilteredData(filtered);
-  }, [data, status]);
+    if (!activeDivision) return;
 
-  // Handle search
-  const handleSearchQueryChange = (e) => {
-    const query = e.target.value.toLowerCase();
-    setSearchQuery(query);
-    if (query === "") {
-      setFilteredData(data);
+    const divisionFiltered = data.filter(
+      (item) => item.divisionID === activeDivision.id
+    );
+
+    if (!searchQuery) {
+      setFilteredData(divisionFiltered);
+      setFiltersApplied(false);
     } else {
-      const searchedData = data.filter(
+      const query = searchQuery.toLowerCase();
+      
+      const result = divisionFiltered.filter(
         (row) =>
           row.DeviceName?.toLowerCase().includes(query) ||
           row.serialNumber?.toLowerCase().includes(query) ||
           row.contractNo?.toLowerCase().includes(query) ||
           row.vendorName?.toLowerCase().includes(query)
       );
-      setFilteredData(searchedData);
+      setFilteredData(result);
+      setFiltersApplied(true);
     }
+  }, [data, activeDivision, searchQuery]);
+
+  const handleSearchQueryChange = (e) => {
+    setSearchQuery(e.target.value);
   };
 
   // Clear search
@@ -94,6 +87,36 @@ export default function Reissue() {
     const options = { day: "2-digit", month: "short", year: "numeric" };
     return new Date(dateString).toLocaleDateString("en-GB", options);
   };
+
+  useEffect(() => {
+    if (!activeDivision) return;
+
+    const lowerSearch = searchQuery.toLowerCase();
+
+    const combinedFiltered = data.filter((item) => {
+      const divisionMatch = item.divisionID === activeDivision.id;
+      const statusMatch =
+        (status === 1 && item.expireStatusName?.toLowerCase() === "issued") ||
+        (status === 2 &&
+          item.expireStatusName?.toLowerCase() === "expire in 3 months") ||
+        (status === 3 &&
+          ["just expired", "expired"].includes(
+            item.expireStatusName?.toLowerCase()
+          ));
+
+      const searchMatch =
+        !searchQuery ||
+        item.DeviceName?.toLowerCase().includes(lowerSearch) ||
+        item.serialNumber?.toLowerCase().includes(lowerSearch) ||
+        item.contractNo?.toLowerCase().includes(lowerSearch) ||
+        item.vendorName?.toLowerCase().includes(lowerSearch);
+
+      return divisionMatch && statusMatch && searchMatch;
+    });
+
+    setFilteredData(combinedFiltered);
+    setFiltersApplied(!!searchQuery);
+  }, [data, activeDivision, searchQuery, status]);
 
   // Set badge color for Expire Status
   const getStatusVariant = (status) => {
@@ -115,7 +138,7 @@ export default function Reissue() {
   const columns = [
     { field: "DeviceName", headerName: "Device", flex: 1, minWidth: 100 },
     { field: "serialNumber", headerName: "S/N", flex: 1, minWidth: 100 },
-    { field: "contractNo", headerName: "Contract", flex: 1, minWidth: 100 },
+    { field: "contractNo", headerName: "Contract No.", flex: 1, minWidth: 100 },
     { field: "divisionName", headerName: "Division", flex: 1, minWidth: 100 },
     { field: "price", headerName: "Total Price", flex: 1, minWidth: 100 },
     {
@@ -202,12 +225,11 @@ export default function Reissue() {
     setShowReissueModal(true);
   };
 
-  // Handle Save Changes (Form submission)
   const handleSaveChanges = () => {
-    // Construct the updated data object with only the non-empty fields
     const updatedData = {};
 
     if (editData.DeviceName) updatedData.DeviceName = editData.DeviceName;
+    if (editData.divisionName) updatedData.divisionName = editData.divisionName;
     if (editData.serialNumber) updatedData.serialNumber = editData.serialNumber;
     if (editData.contractNo) updatedData.contractNo = editData.contractNo;
     if (editData.price) updatedData.price = editData.price;
@@ -244,7 +266,7 @@ export default function Reissue() {
     };
 
     axios
-      .put(`${url}service/insertdata`, updatedData)
+      .post(url + `service/insertdata`, updatedData)
       .then((response) => {
         console.log("Reissued successfully", response);
         setShowReissueModal(false);
@@ -279,7 +301,7 @@ export default function Reissue() {
       </div>
 
       {/* Clear Search Button */}
-      {searchQuery && (
+      {filtersApplied && (
         <Button
           variant="secondary"
           onClick={handleClearSearch}
@@ -292,7 +314,7 @@ export default function Reissue() {
       <div
         className="mt-3"
         style={{
-          height: "calc(100vh - 150px)", // Adjust dynamically
+          height: "calc(100vh - 150px)",
           width: "100%",
           overflowX: "auto",
           maxWidth: "100vw",
@@ -314,9 +336,10 @@ export default function Reissue() {
           }}
           rows={filteredData.length > 0 ? filteredData : []}
           columns={columns}
-          getRowId={(row) => row.serviceID || Math.random()}
-          autoPageSize
+          getRowId={(row) => row.serviceID ?? row.serialNumber ?? row.id}
+          pageSize={10}
           disableColumnMenu
+          rowsPerPageOptions={[10, 25, 50]}
         />
       </div>
 
@@ -335,12 +358,23 @@ export default function Reissue() {
                     <Form.Control
                       type="text"
                       value={editData.DeviceName}
-                      onChange={(e) =>
-                        setEditData({ ...editData, DeviceName: e.target.value })
-                      }
+                      disabled
                     />
                   </Form.Group>
                 </Col>
+                <Col md={6}>
+                  <Form.Group controlId="divisionName">
+                    <Form.Label>Division</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={editData.divisionName}
+                      disabled
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row>
                 <Col md={6}>
                   <Form.Group controlId="formSerialNumber">
                     <Form.Label>Serial Number</Form.Label>
@@ -356,9 +390,6 @@ export default function Reissue() {
                     />
                   </Form.Group>
                 </Col>
-              </Row>
-
-              <Row>
                 <Col md={6}>
                   <Form.Group controlId="formContractNo">
                     <Form.Label>Contract Number</Form.Label>
@@ -371,6 +402,9 @@ export default function Reissue() {
                     />
                   </Form.Group>
                 </Col>
+              </Row>
+
+              <Row>
                 <Col md={6}>
                   <Form.Group controlId="formPrice">
                     <Form.Label>Total Price</Form.Label>
@@ -383,9 +417,6 @@ export default function Reissue() {
                     />
                   </Form.Group>
                 </Col>
-              </Row>
-
-              <Row>
                 <Col md={6}>
                   <Form.Group controlId="formVendorName">
                     <Form.Label>Vendor Name</Form.Label>
@@ -454,15 +485,23 @@ export default function Reissue() {
                     <Form.Control
                       type="text"
                       value={reissueData.DeviceName}
-                      onChange={(e) =>
-                        setReissueData({
-                          ...reissueData,
-                          DeviceName: e.target.value,
-                        })
-                      }
+                      disabled
                     />
                   </Form.Group>
                 </Col>
+                <Col md={6}>
+                  <Form.Group controlId="formDivisionName">
+                    <Form.Label>Division Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={reissueData.divisionName}
+                      disabled
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row>
                 <Col md={6}>
                   <Form.Group controlId="formSerialNumber">
                     <Form.Label>Serial Number</Form.Label>
@@ -478,9 +517,6 @@ export default function Reissue() {
                     />
                   </Form.Group>
                 </Col>
-              </Row>
-
-              <Row>
                 <Col md={6}>
                   <Form.Group controlId="formContractNo">
                     <Form.Label>Contract Number</Form.Label>
@@ -496,6 +532,9 @@ export default function Reissue() {
                     />
                   </Form.Group>
                 </Col>
+              </Row>
+
+              <Row>
                 <Col md={6}>
                   <Form.Group controlId="formPrice">
                     <Form.Label>Total Price</Form.Label>
@@ -511,9 +550,6 @@ export default function Reissue() {
                     />
                   </Form.Group>
                 </Col>
-              </Row>
-
-              <Row>
                 <Col md={6}>
                   <Form.Group controlId="formVendorName">
                     <Form.Label>Vendor Name</Form.Label>
@@ -529,21 +565,6 @@ export default function Reissue() {
                     />
                   </Form.Group>
                 </Col>
-                {/* <Col md={6}>
-                  <Form.Group controlId="formVendorPhone">
-                    <Form.Label>Vendor Phone</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={reissueData.vendorPhone || ""}
-                      onChange={(e) =>
-                        setReissueData({
-                          ...reissueData,
-                          vendorPhone: e.target.value,
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col> */}
               </Row>
 
               <Row>

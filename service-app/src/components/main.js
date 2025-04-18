@@ -4,21 +4,21 @@ import { UrlContext } from "../router/route";
 import { Link } from "react-router-dom";
 import { Button, Badge, InputGroup, FormControl } from "react-bootstrap";
 import { DataGrid } from "@mui/x-data-grid";
+import { useUser } from "../context/userContext";
 
 export default function Main() {
   const { url } = useContext(UrlContext);
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [filtersApplied, setFiltersApplied] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filtersApplied, setFiltersApplied] = useState(false);
+  const { activeDivision } = useUser();
 
-  // Fetch data
   const fetchData = useCallback(() => {
     axios
       .get(url + "service")
       .then((response) => {
         setData(response.data);
-        setFilteredData(response.data);
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
@@ -29,35 +29,39 @@ export default function Main() {
     fetchData();
   }, [fetchData]);
 
-  // Handle search
-  const handleSearchQueryChange = (e) => {
-    const query = e.target.value.toLowerCase();
-    setSearchQuery(query);
+  useEffect(() => {
+    if (!activeDivision) return;
 
-    if (!query) {
-      setFilteredData(data);
+    const divisionFiltered = data.filter(
+      (item) => item.divisionID === activeDivision.id
+    );
+
+    if (!searchQuery) {
+      setFilteredData(divisionFiltered);
       setFiltersApplied(false);
     } else {
-      const filtered = data.filter(
+      const query = searchQuery.toLowerCase();
+      const result = divisionFiltered.filter(
         (row) =>
           row.DeviceName?.toLowerCase().includes(query) ||
           row.serialNumber?.toLowerCase().includes(query) ||
           row.contractNo?.toLowerCase().includes(query) ||
           row.vendorName?.toLowerCase().includes(query)
       );
-      setFilteredData(filtered);
+      setFilteredData(result);
       setFiltersApplied(true);
     }
+  }, [data, activeDivision, searchQuery]);
+
+  const handleSearchQueryChange = (e) => {
+    setSearchQuery(e.target.value);
   };
 
-  // Clear search
   const handleClearSearch = () => {
     setSearchQuery("");
-    setFilteredData(data);
     setFiltersApplied(false);
   };
 
-  // Badge color
   const getStatusVariant = (status) => {
     switch (status?.toLowerCase()) {
       case "issued":
@@ -73,34 +77,22 @@ export default function Main() {
     }
   };
 
-  // Format date
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const options = { day: "2-digit", month: "short", year: "numeric" };
     return new Date(dateString).toLocaleDateString("en-GB", options);
   };
 
-  // MUI DataGrid Columns
   const columns = [
     { field: "DeviceName", headerName: "Device Name", flex: 1, minWidth: 120 },
-    {
-      field: "serialNumber",
-      headerName: "S/N",
-      flex: 1,
-      minWidth: 120,
-    },
+    { field: "serialNumber", headerName: "S/N", flex: 1, minWidth: 120 },
     {
       field: "contractNo",
       headerName: "Contract Number",
       flex: 1,
       minWidth: 120,
     },
-    {
-      field: "divisionName",
-      headerName: "Division",
-      flex: 1,
-      minWidth: 120,
-    },
+    { field: "divisionName", headerName: "Division", flex: 1, minWidth: 120 },
     { field: "price", headerName: "Total Price", flex: 1, minWidth: 120 },
     {
       field: "monthly_charge",
@@ -151,7 +143,6 @@ export default function Main() {
     <div>
       <h2>Service</h2>
 
-      {/* Search Bar */}
       <div className="mt-3">
         <InputGroup className="mb-3">
           <FormControl
@@ -162,7 +153,6 @@ export default function Main() {
         </InputGroup>
       </div>
 
-      {/* Clear Search Button */}
       {filtersApplied && (
         <Button
           variant="secondary"
@@ -174,12 +164,32 @@ export default function Main() {
 
       <div
         className="mt-3"
-        style={{ height: 500, width: "100%", overflowX: "auto" }}>
+        style={{
+          height: "calc(100vh - 150px)",
+          width: "100%",
+          overflowX: "auto",
+          maxWidth: "100vw",
+        }}>
         <DataGrid
+          sx={{
+            "& .MuiDataGrid-root": { width: "100%", minWidth: "700px" },
+            "& .MuiDataGrid-columnHeaders": {
+              backgroundColor: "#f8f9fa",
+              fontSize: "14px",
+            },
+            "& .MuiDataGrid-cell": {
+              fontSize: "12px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            },
+            "& .MuiDataGrid-footerContainer": { justifyContent: "center" },
+          }}
           rows={filteredData.length > 0 ? filteredData : []}
           columns={columns}
-          getRowId={(row) => row.serviceID || Math.random()}
+          getRowId={(row) => row.serviceID ?? row.serialNumber ?? row.id}
           pageSize={10}
+          disableColumnMenu
           rowsPerPageOptions={[10, 25, 50]}
         />
       </div>

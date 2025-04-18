@@ -1,9 +1,12 @@
 import React, { useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { UrlContext } from "../router/route";
+import { useUser } from "../context/userContext";
 
 export default function InsertData({ onSuccess }) {
   const { url } = useContext(UrlContext);
+  const { activeDivision } = useUser();
+
   const [formData, setFormData] = useState({
     DeviceName: "",
     divisionID: "",
@@ -30,57 +33,67 @@ export default function InsertData({ onSuccess }) {
       .catch((error) => console.error("Error fetching divisions:", error));
   }, [url]);
 
+  useEffect(() => {
+    if (activeDivision?.id) {
+      setFormData((prev) => ({
+        ...prev,
+        divisionID: activeDivision.id.toString(),
+      }));
+    }
+  }, [activeDivision]);
+
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // First submit form data
-    axios
-      .post(url + "service/insertdata", formData)
-      .then(() => {
-        alert("Service added successfully!");
-        setFormData({
-          DeviceName: "",
-          divisionID: "",
-          price: "",
-          startDate: "",
-          endDate: "",
-          vendorName: "",
-          vendorPhone: "",
-          serialNumber: "",
-          contractNo: "",
-        });
-        setUploadedFiles([]); // Clear uploaded files
-        onSuccess();
-      })
-      .catch((error) => console.error("Error adding service:", error));
+    try {
+      await axios.post(url + "service/insertdata", formData);
+      alert("Service added successfully!");
 
-    // Then upload files if any
-    if (uploadedFiles.length > 0) {
-      uploadedFiles.forEach((file) => {
-        const formDataFile = new FormData();
-        formDataFile.append("file", file.file); // The file data
-        formDataFile.append("fileType", file.type); // File type
+      if (uploadedFiles.length > 0) {
+        for (const file of uploadedFiles) {
+          const formDataFile = new FormData();
+          formDataFile.append("file", file.file);
+          formDataFile.append("fileType", file.type);
 
-        axios
-          .post(url + "service/insertdoc", formDataFile)
-          .then(() => {
-            console.log("File uploaded successfully!");
-          })
-          .catch((error) => {
-            console.error("Error uploading file:", error);
-          });
+          await axios.post(url + "service/insertdoc", formDataFile);
+        }
+        console.log("All files uploaded successfully!");
+      }
+
+      // Reset form
+      setFormData({
+        DeviceName: "",
+        divisionID: activeDivision?.id?.toString() || "",
+        price: "",
+        startDate: "",
+        endDate: "",
+        vendorName: "",
+        vendorPhone: "",
+        serialNumber: "",
+        contractNo: "",
       });
+      setUploadedFiles([]);
+      setSelectedFile(null);
+      setFileType("");
+      onSuccess();
+    } catch (error) {
+      console.error("Error submitting data or uploading files:", error);
+      alert("An error occurred. Please try again.");
     }
   };
 
   const handleClear = () => {
     setFormData({
       DeviceName: "",
-      divisionID: "",
+      divisionID: activeDivision?.id?.toString() || "",
       price: "",
       startDate: "",
       endDate: "",
@@ -90,9 +103,10 @@ export default function InsertData({ onSuccess }) {
       contractNo: "",
     });
     setUploadedFiles([]);
+    setSelectedFile(null);
+    setFileType("");
   };
 
-  // File Upload Logic
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
   };
@@ -103,9 +117,8 @@ export default function InsertData({ onSuccess }) {
       return;
     }
 
-    // Add the uploaded file to the list
-    setUploadedFiles([
-      ...uploadedFiles,
+    setUploadedFiles((prev) => [
+      ...prev,
       { file: selectedFile, type: fileType },
     ]);
     setSelectedFile(null);
@@ -113,13 +126,12 @@ export default function InsertData({ onSuccess }) {
   };
 
   const handleRemoveFile = (index) => {
-    setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
     <div>
       <h2>Manual Upload</h2>
-
       <form onSubmit={handleSubmit}>
         <div className="row">
           {/* Device Name */}
@@ -172,11 +184,12 @@ export default function InsertData({ onSuccess }) {
               name="divisionID"
               value={formData.divisionID}
               onChange={handleChange}
-              required>
+              required
+              disabled>
               <option value="">Select Division</option>
-              {division.map((division) => (
-                <option key={division.divisionID} value={division.divisionID}>
-                  {division.divisionName}
+              {division.map((d) => (
+                <option key={d.divisionID} value={d.divisionID}>
+                  {d.divisionName}
                 </option>
               ))}
             </select>
@@ -218,7 +231,6 @@ export default function InsertData({ onSuccess }) {
               name="endDate"
               value={formData.endDate}
               onChange={handleChange}
-              required
               autoComplete="off"
             />
           </div>
@@ -232,7 +244,6 @@ export default function InsertData({ onSuccess }) {
               name="vendorName"
               value={formData.vendorName}
               onChange={handleChange}
-              required
               autoComplete="off"
             />
           </div>
@@ -269,7 +280,7 @@ export default function InsertData({ onSuccess }) {
           </div>
         </div>
 
-        {/* File List Table */}
+        {/* File List */}
         {uploadedFiles.length > 0 && (
           <div className="mt-3">
             <table className="table table-bordered">
@@ -299,7 +310,7 @@ export default function InsertData({ onSuccess }) {
           </div>
         )}
 
-        {/* Submit & Clear Buttons */}
+        {/* Buttons */}
         <div className="form-group mt-3">
           <button type="submit" className="btn btn-primary">
             Save
