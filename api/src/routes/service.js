@@ -6,6 +6,8 @@ const fs = require("fs");
 const db = require("../db/sql");
 const XLSX = require("xlsx");
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
 // Multer setup for file upload configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -16,11 +18,23 @@ const storage = multer.diskStorage({
       return cb(new Error("Mismatch between files and file types."), null);
     }
 
-    const fileType = fileTypes[req.files.indexOf(file)];
+    if (file.size > MAX_FILE_SIZE) {
+      alert("File size exceeds the maximum limit of 5 MB.");
+      return;
+    }
+
+    const fileType = file.type; // MIME type
+    if (fileType === "application/pdf") {
+      // Handle PDF files
+    } else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      // Handle Word documents
+    }
+
+    const fileTypeFromBody = fileTypes[req.files.indexOf(file)];
     let dirPath;
 
     // Determine the directory based on the fileType
-    switch (fileType) {
+    switch (fileTypeFromBody) {
       case "pr":
         dirPath = path.join("uploads", "ServicePRDocument");
         break;
@@ -222,7 +236,22 @@ router.post("/insertdoc", upload.array("files", 10), async (req, res) => {
       return res.status(400).send("No files uploaded.");
     }
 
-    const { serviceID, fileTypes } = req.body; // Extract serviceID and file types from the request body
+    const serviceID = parseInt(req.body.serviceID);
+    let fileTypes;
+
+    try {
+      fileTypes = JSON.parse(req.body.fileTypes);
+    } catch (err) {
+      return res.status(400).send("Invalid fileTypes format.");
+    }
+
+    if (
+      !serviceID ||
+      !Array.isArray(fileTypes) ||
+      fileTypes.length !== req.files.length
+    ) {
+      return res.status(400).send("Missing or mismatched file data.");
+    }
 
     if (!serviceID || !fileTypes || fileTypes.length !== req.files.length) {
       return res.status(400).send("Missing or mismatched file data.");
@@ -267,10 +296,19 @@ router.post("/insertdoc", upload.array("files", 10), async (req, res) => {
         .query(query);
     }
 
+    for (const file of files) {
+      try {
+        await axios.post(url + "service/insertdoc", fileData);
+        console.log(`${file.name} uploaded successfully.`);
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
+      }
+    }
+
     res.status(200).send("Files uploaded and linked to service successfully.");
   } catch (error) {
     console.error("Error uploading files:", error);
-    res.status(500).send("Error uploading files.");
+    alert("Failed to upload files. Please try again.");
   }
 });
 

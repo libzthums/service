@@ -10,37 +10,65 @@ router.get("/", (req, res) => {
 
 // Handle POST request for registering a new user
 router.post("/", async (req, res) => {
-  const { userName, userPassword } = req.body;
+  const {
+    userFullName,
+    userName,
+    userPassword,
+    userDivision,
+    userPermission = 1,
+  } = req.body;
 
   try {
-    // Check if user already exists
     const pool = await connectDB();
-    const result = await pool
+
+    // Check if user already exists
+    const existingUser = await pool
       .request()
       .input("userName", sql.VarChar(255), userName)
       .query(
         "SELECT COUNT(*) AS count FROM userLogin WHERE userName = @userName"
       );
 
-    if (result.recordset[0].count > 0) {
+    if (existingUser.recordset[0].count > 0) {
       return res.render("register", {
         errorMessage: "Email already registered!",
       });
     }
 
-    // Hash the password before storing
+    // Hash the password
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
-    // Insert the new user into the database
-    await pool
+    // Insert into userLogin
+    const insertLoginResult = await pool
       .request()
       .input("userName", sql.VarChar(255), userName)
       .input("userPassword", sql.VarChar(255), hashedPassword)
       .query(
-        "INSERT INTO userLogin (userName, userPassword) VALUES (@userName, @userPassword)"
+        "INSERT INTO userLogin (userName, userPassword) OUTPUT INSERTED.userID VALUES (@userName, @userPassword)"
       );
 
-    // Registration successful, render page with success message
+    const userID = insertLoginResult.recordset[0].userID;
+
+    // Insert into userDetail
+    await pool
+      .request()
+      .input("userID", sql.Int, userID)
+      .input("userFullName", sql.VarChar(255), userFullName)
+      .input("userPermission", sql.Int, userPermission)
+      .query(
+        "INSERT INTO userDetail (userID, Name, Permission) VALUES (@userID, @userFullName, @userPermission)"
+      );
+
+    // Insert into userDivision
+    await pool
+      .request()
+      .input("userID", sql.Int, userID)
+      .input("divisionID", sql.Int, parseInt(userDivision))
+      .query(
+        "INSERT INTO userDivision (userID, divisionID) VALUES (@userID, @divisionID)"
+      );
+
+    // Success
     res.render("register", {
       successMessage: "Registration successful! Please log in.",
     });

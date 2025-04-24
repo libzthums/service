@@ -15,6 +15,8 @@
         "msnodesqlv",
         "noopener",
         "noreferrer",
+        "officedocument",
+        "openxmlformats",
         "Permonth",
         "Peryear",
         "pushmenu",
@@ -22,6 +24,7 @@
         "registerroute",
         "treeview",
         "updatedata",
-        "userlogin"
+        "userlogin",
+        "wordprocessingml"
     ]
 }

@@ -27,8 +27,32 @@ export default function Reissue() {
   const [editData, setEditData] = useState(null);
   const [showReissueModal, setShowReissueModal] = useState(false);
   const [reissueData, setReissueData] = useState(null);
-  const { activeDivision } = useUser();
-  const [filtersApplied, setFiltersApplied] = useState(false);
+  const { user, activeDivision } = useUser();
+
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [divisionQuery, setDivisionQuery] = useState("");
+  const [totalPriceQuery, setTotalPriceQuery] = useState("");
+  const [pricePerMonthQuery, setPricePerMonthQuery] = useState("");
+  const [vendorNameQuery, setVendorNameQuery] = useState("");
+  const [dateOfIssueQuery, setDateOfIssueQuery] = useState("");
+  const [dateOfExpiredQuery, setDateOfExpiredQuery] = useState("");
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [deviceQuery, setDeviceQuery] = useState("");
+  const [serialQuery, setSerialQuery] = useState("");
+  const [contractQuery, setContractQuery] = useState("");
+
+  const [tempDeviceQuery, setTempDeviceQuery] = useState("");
+  const [tempSerialQuery, setTempSerialQuery] = useState("");
+  const [tempContractQuery, setTempContractQuery] = useState("");
+  const [tempDivisionQuery, setTempDivisionQuery] = useState("");
+  const [tempTotalPriceQuery, setTempTotalPriceQuery] = useState("");
+  const [tempPricePerMonthQuery, setTempPricePerMonthQuery] = useState("");
+  const [tempVendorNameQuery, setTempVendorNameQuery] = useState("");
+  const [tempDateOfIssueQuery, setTempDateOfIssueQuery] = useState("");
+  const [tempDateOfExpiredQuery, setTempDateOfExpiredQuery] = useState("");
+  const [tempPriceMin, setTempPriceMin] = useState("");
+  const [tempPriceMax, setTempPriceMax] = useState("");
 
   // Fetch data
   const fetchData = useCallback(() => {
@@ -49,52 +73,15 @@ export default function Reissue() {
   useEffect(() => {
     if (!activeDivision) return;
 
-    const divisionFiltered = data.filter(
-      (item) => item.divisionID === activeDivision.id
-    );
-
-    if (!searchQuery) {
-      setFilteredData(divisionFiltered);
-      setFiltersApplied(false);
-    } else {
-      const query = searchQuery.toLowerCase();
-      
-      const result = divisionFiltered.filter(
-        (row) =>
-          row.DeviceName?.toLowerCase().includes(query) ||
-          row.serialNumber?.toLowerCase().includes(query) ||
-          row.contractNo?.toLowerCase().includes(query) ||
-          row.vendorName?.toLowerCase().includes(query)
-      );
-      setFilteredData(result);
-      setFiltersApplied(true);
-    }
-  }, [data, activeDivision, searchQuery]);
-
-  const handleSearchQueryChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
-
-  // Clear search
-  const handleClearSearch = () => {
-    setSearchQuery("");
-    setFilteredData(data);
-  };
-
-  // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const options = { day: "2-digit", month: "short", year: "numeric" };
-    return new Date(dateString).toLocaleDateString("en-GB", options);
-  };
-
-  useEffect(() => {
-    if (!activeDivision) return;
-
     const lowerSearch = searchQuery.toLowerCase();
 
-    const combinedFiltered = data.filter((item) => {
-      const divisionMatch = item.divisionID === activeDivision.id;
+    const isAdminOrManager =
+      user.permissionCode === 2 || user.permissionCode === 3;
+
+    let result = data.filter((item) => {
+      const divisionMatch =
+        isAdminOrManager || item.divisionID === activeDivision.id;
+
       const statusMatch =
         (status === 1 && item.expireStatusName?.toLowerCase() === "issued") ||
         (status === 2 &&
@@ -114,9 +101,139 @@ export default function Reissue() {
       return divisionMatch && statusMatch && searchMatch;
     });
 
-    setFilteredData(combinedFiltered);
-    setFiltersApplied(!!searchQuery);
-  }, [data, activeDivision, searchQuery, status]);
+    if (deviceQuery) {
+      result = result.filter((row) =>
+        row.DeviceName?.toLowerCase().includes(deviceQuery.toLowerCase())
+      );
+    }
+
+    if (serialQuery) {
+      result = result.filter((row) =>
+        row.serialNumber?.toLowerCase().includes(serialQuery.toLowerCase())
+      );
+    }
+
+    if (contractQuery) {
+      result = result.filter((row) =>
+        row.contractNo?.toLowerCase().includes(contractQuery.toLowerCase())
+      );
+    }
+
+    if (divisionQuery) {
+      result = result.filter((row) =>
+        row.divisionName?.toLowerCase().includes(divisionQuery.toLowerCase())
+      );
+    }
+
+    if (totalPriceQuery) {
+      result = result.filter((row) =>
+        row.price?.toString().includes(totalPriceQuery)
+      );
+    }
+
+    if (pricePerMonthQuery) {
+      result = result.filter((row) =>
+        row.monthly_charge?.toString().includes(pricePerMonthQuery)
+      );
+    }
+
+    if (vendorNameQuery) {
+      result = result.filter((row) =>
+        row.vendorName?.toLowerCase().includes(vendorNameQuery.toLowerCase())
+      );
+    }
+
+    if (dateOfIssueQuery && !isNaN(new Date(dateOfIssueQuery).getTime())) {
+      result = result.filter((row) =>
+        row.startDate?.includes(dateOfIssueQuery)
+      );
+    }
+
+    if (dateOfExpiredQuery && !isNaN(new Date(dateOfExpiredQuery).getTime())) {
+      result = result.filter((row) =>
+        row.endDate?.includes(dateOfExpiredQuery)
+      );
+    }
+
+    if (priceMin || priceMax) {
+      result = result.filter((row) => {
+        const price = parseFloat(row.monthly_charge);
+        const min = priceMin ? parseFloat(priceMin) : -Infinity;
+        const max = priceMax ? parseFloat(priceMax) : Infinity;
+        return price >= min && price <= max;
+      });
+    }
+
+    setFilteredData(result);
+  }, [
+    data,
+    activeDivision,
+    searchQuery,
+    status,
+    user.permissionCode,
+    deviceQuery,
+    serialQuery,
+    contractQuery,
+    divisionQuery,
+    totalPriceQuery,
+    pricePerMonthQuery,
+    vendorNameQuery,
+    dateOfIssueQuery,
+    dateOfExpiredQuery,
+    priceMin,
+    priceMax,
+  ]);
+
+  const handleSearchQueryChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleClearFilters = () => {
+    setDivisionQuery("");
+    setTotalPriceQuery("");
+    setPricePerMonthQuery("");
+    setVendorNameQuery("");
+    setDateOfIssueQuery("");
+    setDateOfExpiredQuery("");
+    setPriceMin("");
+    setPriceMax("");
+    setDeviceQuery("");
+    setSerialQuery("");
+    setContractQuery("");
+    setTempDeviceQuery("");
+    setTempSerialQuery("");
+    setTempContractQuery("");
+    setTempDivisionQuery("");
+    setTempTotalPriceQuery("");
+    setTempPricePerMonthQuery("");
+    setTempVendorNameQuery("");
+    setTempDateOfIssueQuery("");
+    setTempDateOfExpiredQuery("");
+    setTempPriceMin("");
+    setTempPriceMax("");
+  };
+
+  const handleApplyFilters = () => {
+    setDeviceQuery(tempDeviceQuery);
+    setSerialQuery(tempSerialQuery);
+    setContractQuery(tempContractQuery);
+    setDivisionQuery(tempDivisionQuery);
+    setTotalPriceQuery(tempTotalPriceQuery);
+    setPricePerMonthQuery(tempPricePerMonthQuery);
+    setVendorNameQuery(tempVendorNameQuery);
+    setDateOfIssueQuery(tempDateOfIssueQuery);
+    setDateOfExpiredQuery(tempDateOfExpiredQuery);
+    setPriceMin(tempPriceMin);
+    setPriceMax(tempPriceMax);
+    setShowFilterModal(false);
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const options = { day: "2-digit", month: "short", year: "numeric" };
+    return new Date(dateString).toLocaleDateString("en-GB", options);
+  };
 
   // Set badge color for Expire Status
   const getStatusVariant = (status) => {
@@ -204,12 +321,13 @@ export default function Reissue() {
               Reissue
             </Button>
           </Link>
-
-          <Link to="/#">
-            <Button size="sm" variant="danger">
-              Delete
-            </Button>
-          </Link>
+          {user.permission === "Admin" && (
+            <Link to="/#">
+              <Button size="sm" variant="danger">
+                Delete
+              </Button>
+            </Link>
+          )}
         </div>
       ),
     },
@@ -277,8 +395,13 @@ export default function Reissue() {
       });
   };
 
+  const [paginationModel, setPaginationModel] = useState({
+    pageSize: 10,
+    page: 0,
+  });
+
   return (
-    <div>
+    <div responsive="true" className="container-fluid">
       <h2>
         Reissue -{" "}
         {status === 1
@@ -289,26 +412,27 @@ export default function Reissue() {
       </h2>
 
       {/* Search Bar */}
-      <div className="mt-3">
-        <InputGroup className="mb-3">
-          <FormControl
-            placeholder="Search by Device Name, Serial Number, Contract Number or Vendor Name"
-            aria-label="Search"
-            value={searchQuery}
-            onChange={handleSearchQueryChange}
-          />
-        </InputGroup>
+      <div className="row mt-3">
+        <div className="col-md-4"></div>
+        <div className="col-md-4">
+          <InputGroup className="mb-3">
+            <FormControl
+              placeholder=""
+              value={searchQuery}
+              onChange={handleSearchQueryChange}
+            />
+          </InputGroup>
+        </div>
+        <div className="col-md-4">
+          <Button
+            variant="info"
+            className="text-center"
+            size="md"
+            onClick={() => setShowFilterModal(true)}>
+            Filter
+          </Button>
+        </div>
       </div>
-
-      {/* Clear Search Button */}
-      {filtersApplied && (
-        <Button
-          variant="secondary"
-          onClick={handleClearSearch}
-          className="mb-3">
-          Clear Search
-        </Button>
-      )}
 
       {/* DataGrid */}
       <div
@@ -337,14 +461,20 @@ export default function Reissue() {
           rows={filteredData.length > 0 ? filteredData : []}
           columns={columns}
           getRowId={(row) => row.serviceID ?? row.serialNumber ?? row.id}
+          pagination
           pageSize={10}
           disableColumnMenu
-          rowsPerPageOptions={[10, 25, 50]}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50]}
         />
       </div>
 
       {/* Edit Modal */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+      <Modal
+        show={showEditModal}
+        onHide={() => setShowEditModal(false)}
+        animation={true}>
         <Modal.Header closeButton>
           <Modal.Title>Edit Service</Modal.Title>
         </Modal.Header>
@@ -460,18 +590,21 @@ export default function Reissue() {
             </Form>
           )}
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer className="justify-content-center">
           <Button variant="secondary" onClick={() => setShowEditModal(false)}>
             Close
           </Button>
-          <Button variant="warning" onClick={handleSaveChanges}>
+          <Button variant="success" onClick={handleSaveChanges}>
             Save Changes
           </Button>
         </Modal.Footer>
       </Modal>
 
       {/* Reissue Modal */}
-      <Modal show={showReissueModal} onHide={() => setShowReissueModal(false)}>
+      <Modal
+        show={showReissueModal}
+        onHide={() => setShowReissueModal(false)}
+        animation={true}>
         <Modal.Header closeButton>
           <Modal.Title>Reissue Device</Modal.Title>
         </Modal.Header>
@@ -566,7 +699,6 @@ export default function Reissue() {
                   </Form.Group>
                 </Col>
               </Row>
-
               <Row>
                 <Col md={6}>
                   <Form.Group controlId="formStartDate">
@@ -602,7 +734,7 @@ export default function Reissue() {
             </Form>
           )}
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer className="justify-content-center">
           <Button
             variant="secondary"
             onClick={() => setShowReissueModal(false)}>
@@ -610,6 +742,117 @@ export default function Reissue() {
           </Button>
           <Button variant="success" onClick={handleReissueSave}>
             Save Reissue
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={showFilterModal}
+        onHide={() => setShowFilterModal(false)}
+        centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Filter Options</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <div className="row px-3 mt-3">
+              <div className="col-md-6 mb-3">
+                <FormControl
+                  placeholder="Device Name"
+                  value={tempDeviceQuery}
+                  onChange={(e) => setTempDeviceQuery(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <FormControl
+                  placeholder="S/N"
+                  value={tempSerialQuery}
+                  onChange={(e) => setTempSerialQuery(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <FormControl
+                  placeholder="Contract Number"
+                  value={tempContractQuery}
+                  onChange={(e) => setTempContractQuery(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <FormControl
+                  placeholder="Division"
+                  value={tempDivisionQuery}
+                  onChange={(e) => setTempDivisionQuery(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <FormControl
+                  placeholder="Total Price"
+                  value={tempTotalPriceQuery}
+                  onChange={(e) => setTempTotalPriceQuery(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <FormControl
+                  placeholder="Price / Month"
+                  value={tempPricePerMonthQuery}
+                  onChange={(e) => setTempPricePerMonthQuery(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <FormControl
+                  placeholder="Vendor"
+                  value={tempVendorNameQuery}
+                  onChange={(e) => setTempVendorNameQuery(e.target.value)}
+                />
+              </div>
+              <div className="col-md-3 mb-3">
+                <FormControl
+                  type="number"
+                  placeholder="Min Price"
+                  value={tempPriceMin}
+                  onChange={(e) => setTempPriceMin(e.target.value)}
+                />
+              </div>
+              <div className="col-md-3 mb-3">
+                <FormControl
+                  type="number"
+                  placeholder="Max Price"
+                  value={tempPriceMax}
+                  onChange={(e) => setTempPriceMax(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <FormControl
+                  type="date"
+                  placeholder="Date of Issue"
+                  value={tempDateOfIssueQuery}
+                  onChange={(e) => setTempDateOfIssueQuery(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <FormControl
+                  type="date"
+                  placeholder="Date of Expired"
+                  value={tempDateOfExpiredQuery}
+                  onChange={(e) => setTempDateOfExpiredQuery(e.target.value)}
+                />
+              </div>
+              <Button
+                variant="outline-danger"
+                onClick={() => {
+                  handleClearFilters();
+                }}>
+                Clear
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowFilterModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleApplyFilters}>
+            Apply
           </Button>
         </Modal.Footer>
       </Modal>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button, Form } from "react-bootstrap";
 import { useUser } from "../context/userContext";
@@ -7,6 +7,17 @@ export default function Sidebar() {
   const [isReissueOpen, setReissueOpen] = useState(false);
   const [isTotalOpen, setTotalOpen] = useState(false);
   const { user, activeDivision, setActiveDivision } = useUser();
+
+  useEffect(() => {
+    if (user?.divisionIDs?.length > 0 && !activeDivision) {
+      const defaultID = user.divisionIDs[0];
+      setActiveDivision({
+        id: defaultID,
+        name: user.divisionNames[0],
+      });
+      localStorage.setItem("activeDivisionID", defaultID); // Persist the default division
+    }
+  }, [user, activeDivision, setActiveDivision]);
 
   const handleDivisionChange = (e) => {
     const newID = parseInt(e.target.value);
@@ -19,48 +30,66 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="main-sidebar sidebar-light-primary elevation-4">
-      <a href="/" className="custom-brand-link text-center bg-primary">
+    <aside className={`main-sidebar sidebar-light-primary elevation-4`}>
+      <Link
+        to="/"
+        className="brand-link text-center bg-primary"
+        style={{
+          textDecoration: "none",
+          display: "block",
+          fontWeight: "bold",
+        }}>
         <span className="brand-text text-brand">Service Charge</span>
-      </a>
+      </Link>
       <div className="sidebar">
         <nav className="mt-2">
           <ul className="nav nav-pills nav-sidebar flex-column">
-            {/* User Info */}
-            <li className="nav-header">User</li>
-            <li className="nav-header">
-              <span className="nav-link">
-                <strong>{user?.name}</strong>
-              </span>
-              <span className="nav-link">{user?.permission}</span>
-            </li>
-
-            {/* Current Division Info */}
-            {/* <li className="nav-item px-2">
-              <strong className="text-muted small">Division: {activeDivision?.name}</strong>
-            </li> */}
-
-            {/* Division Switcher */}
-            <li className="nav-item px-2 mb-2 mt-2 mr-4">
-              <Form.Select
-                value={activeDivision?.id || ""}
-                onChange={handleDivisionChange}
-                className="form-control">
-                {user?.divisionIDs?.map((id, idx) => (
-                  <option key={id} value={id}>
-                    {user.divisionNames?.[idx] || `Division ${id}`}
-                  </option>
-                ))}
-              </Form.Select>
-            </li>
-
-            {/* Dashboard */}
+            {user && (
+              <li className="nav-item">
+                <div
+                  className="text-center mt-4"
+                  style={{
+                    border: "1px solid #ccc",
+                    padding: "5px",
+                    borderRadius: "20px",
+                  }}>
+                  {user?.name}
+                </div>
+                <Form.Select
+                  value={activeDivision?.id}
+                  onChange={handleDivisionChange}
+                  className="form-control mt-1 mb-1 text-center"
+                  style={{
+                    border: "1px solid #ccc",
+                    padding: "5px",
+                    borderRadius: "20px",
+                  }}>
+                  {user?.divisionIDs?.map((id, idx) => (
+                    <option key={id} value={id}>
+                      {user.divisionNames?.[idx] || `Division ${id}`}
+                    </option>
+                  ))}
+                </Form.Select>
+                <div
+                  className="text-center"
+                  style={{
+                    border: "1px solid #ccc",
+                    padding: "5px",
+                    borderRadius: "20px",
+                  }}>
+                  {user?.permission}
+                </div>
+                <div
+                  className=""
+                  style={{
+                    borderBottom: "1px solid #ccc",
+                    padding: "20px",
+                  }}></div>
+              </li>
+            )}
+            <div style={{ marginTop: "35px" }}></div>
             <NavItem to="/" icon="fas fa-home" label="Dashboard" />
-
-            {/* Upload */}
             <NavItem to="/uploadPage" icon="fa fa-file" label="Upload" />
-
-            {/* Reissue Dropdown */}
             <li className={`nav-item ${isReissueOpen ? "menu-open" : ""}`}>
               <Button
                 href="#"
@@ -82,25 +111,19 @@ export default function Sidebar() {
                 className={`nav nav-treeview ${
                   isReissueOpen ? "d-block" : "d-none"
                 }`}>
-                <NavItem
-                  to="/reissuePage"
-                  state={{ status: 1 }}
-                  label="Issued"
-                />
-                <NavItem
-                  to="/reissuePage"
-                  state={{ status: 2 }}
-                  label="Expire within 3 months"
-                />
-                <NavItem
-                  to="/reissuePage"
-                  state={{ status: 3 }}
-                  label="Expired Issue"
-                />
+                <NavItem to="/reissuePage" state={{ status: 1 }} label="">
+                  <span style={{ marginLeft: "34.5px" }}>Issued</span>
+                </NavItem>
+                <NavItem to="/reissuePage" state={{ status: 2 }} label="">
+                  <span style={{ marginLeft: "34.5px" }}>
+                    Expire in 3 months
+                  </span>
+                </NavItem>
+                <NavItem to="/reissuePage" state={{ status: 3 }} label="">
+                  <span style={{ marginLeft: "34.5px" }}>Expired Issue</span>
+                </NavItem>
               </ul>
             </li>
-
-            {/* Total Dropdown */}
             <li className={`nav-item ${isTotalOpen ? "menu-open" : ""}`}>
               <Button
                 href="#"
@@ -122,18 +145,20 @@ export default function Sidebar() {
                 className={`nav nav-treeview ${
                   isTotalOpen ? "d-block" : "d-none"
                 }`}>
-                <NavItem
-                  to="/totalPage"
-                  state={{ status: 1 }}
-                  label="Per Month"
-                />
-                <NavItem
-                  to="/totalPage"
-                  state={{ status: 2 }}
-                  label="Per Year"
-                />
+                <NavItem to="/totalPage" state={{ status: 1 }} label="">
+                  <span style={{ marginLeft: "34.5px" }}>Per month</span>
+                </NavItem>
+                <NavItem to="/totalPage" state={{ status: 2 }} label="">
+                  <span style={{ marginLeft: "34.5px" }}>Per year</span>
+                </NavItem>
               </ul>
             </li>
+            {user?.permission === `Admin` && (
+              <NavItem to="/setting" icon="fa fa-cog" label="Setting" />
+            )}
+            <div>
+              <br></br>
+            </div>
           </ul>
         </nav>
       </div>
@@ -141,10 +166,12 @@ export default function Sidebar() {
   );
 }
 
-const NavItem = ({ to, icon, label, state }) => (
+const NavItem = ({ to, icon, label, state, children }) => (
   <li className="nav-item">
     <Link to={to} className="nav-link" state={state}>
-      {icon && <i className={`nav-icon ${icon}`}></i>} <p>{label}</p>
+      {icon && <i className={`nav-icon ${icon}`}></i>}
+      {label && <p>{label}</p>}
+      {children}
     </Link>
   </li>
 );

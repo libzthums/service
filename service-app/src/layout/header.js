@@ -4,7 +4,7 @@ import { useUser } from "../context/userContext";
 import { useNavigate } from "react-router-dom";
 
 export default function Header() {
-  const { user, setUser } = useUser();
+  const { setUser } = useUser();
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
 
@@ -13,27 +13,24 @@ export default function Header() {
     setShowModal(true);
   };
 
-  // Function to confirm logout and perform the action
   const confirmLogout = () => {
     // Clear user data from localStorage and reset user context
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null); // Reset user in context
 
-    // Close the modal
     setShowModal(false);
 
-    // Navigate to login page
     navigate("/login");
+    window.location.reload();
   };
 
-  // Function to cancel logout and close the modal
   const cancelLogout = () => {
     setShowModal(false);
   };
 
   return (
-    <nav className="main-header navbar navbar-expand navbar-dark bg-primary">
+    <nav className="main-header navbar navbar-expand-lg navbar-dark bg-primary">
       {/* Left navbar links */}
       <ul className="navbar-nav">
         <li className="nav-item">
@@ -45,11 +42,10 @@ export default function Header() {
 
       {/* Right navbar links */}
       <ul className="navbar-nav ml-auto d-flex align-items-center">
-        {/* Username Display */}
         <li className="nav-item dropdown">
           <Dropdown as={ButtonGroup}>
             <Button variant="primary">
-              <h5 className="mb-0">{user?.name}</h5>
+              <h5 className="mb-0"><i className="fa fa-cogs"></i></h5>
             </Button>
             <Dropdown.Toggle
               split

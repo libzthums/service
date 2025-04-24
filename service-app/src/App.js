@@ -13,13 +13,33 @@ import TotalPage from "./components/totalPage";
 import { UserProvider, useUser } from "./context/userContext";
 import Login from "./components/Login";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { jwtDecode } from "jwt-decode";
+import { useNavigate } from "react-router-dom";
+import Setting from "./components/setting";
+import SettingDivision from "./components/settingDivision";
+import SettingPermission from "./components/settingPermission";
 
 // ProtectedRoute Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useUser();
+  const navigate = useNavigate();
 
+  // Check if the user is logged in and the token is still valid
   if (loading) {
     return <div className="text-center mt-5">Loading...</div>;
+  }
+
+  // Decode the token and check expiration
+  const token = localStorage.getItem("token"); // Using localStorage to store the token
+  if (token) {
+    const decodedToken = jwtDecode(token);
+    const currentTime = Date.now() / 1000; // Current time in seconds
+
+    // If the token is expired, clear the session and log out the user
+    if (decodedToken.exp < currentTime) {
+      localStorage.removeItem("token"); // Remove token from localStorage
+      navigate("/login"); // Redirect to login page
+    }
   }
 
   if (!user) {
@@ -91,6 +111,30 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <InsertData />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/setting"
+                element={
+                  <ProtectedRoute>
+                    <Setting />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settingDivision"
+                element={
+                  <ProtectedRoute>
+                    <SettingDivision />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settingPermission"
+                element={
+                  <ProtectedRoute>
+                    <SettingPermission />
                   </ProtectedRoute>
                 }
               />

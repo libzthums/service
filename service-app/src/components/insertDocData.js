@@ -3,6 +3,8 @@ import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { UrlContext } from "../router/route";
+import { useNavigate } from "react-router-dom";
+import { Button } from "react-bootstrap";
 
 export default function InsertDocData() {
   const { url } = React.useContext(UrlContext);
@@ -10,6 +12,7 @@ export default function InsertDocData() {
   const [previewData, setPreviewData] = useState(null); // Parsed Excel data for preview
   const [multipleFiles, setMultipleFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const navigate = useNavigate();
 
   // Handle file change for single Excel file upload
   const handleSingleFileChange = (e) => {
@@ -94,7 +97,7 @@ export default function InsertDocData() {
         });
 
         // Extract serviceID from the response
-        const serviceID = serviceResponse.data.id; // Assuming backend returns serviceID
+        const serviceID = serviceResponse.data.id;
 
         // Now handle file upload if present
         if (multipleFiles.length > 0) {
@@ -150,9 +153,17 @@ export default function InsertDocData() {
   });
 
   return (
-    <div className="container">
-      <h2>Upload Document</h2>
-
+    <div responsive="true" className="container-fluid">
+      <div className="row align-items-center mt-4 mb-4">
+        <div className="col-auto">
+          <Button variant="secondary" onClick={() => navigate(-1)}>
+            <i className="fas fa-arrow-left"></i> Back
+          </Button>
+        </div>
+        <div className="col">
+          <h2>Document Upload</h2>
+        </div>
+      </div>
       {/* Single Excel file section with preview */}
       <div className="mt-5">
         <input

@@ -2,10 +2,13 @@ import React, { useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { UrlContext } from "../router/route";
 import { useUser } from "../context/userContext";
+import { useNavigate } from "react-router-dom";
+import { Button } from "react-bootstrap";
 
 export default function InsertData({ onSuccess }) {
   const { url } = useContext(UrlContext);
-  const { activeDivision } = useUser();
+  const { user, activeDivision } = useUser();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     DeviceName: "",
@@ -58,20 +61,20 @@ export default function InsertData({ onSuccess }) {
       alert("Service added successfully!");
 
       if (uploadedFiles.length > 0) {
-        for (const file of uploadedFiles) {
-          const formDataFile = new FormData();
-          formDataFile.append("file", file.file);
-          formDataFile.append("fileType", file.type);
+        const formDataFile = new FormData();
+        uploadedFiles.forEach((file) => {
+          formDataFile.append("files", file.file);
+        });
+        const fileTypes = uploadedFiles.map((file) => file.type);
+        formDataFile.append("fileTypes", JSON.stringify(fileTypes));
 
-          await axios.post(url + "service/insertdoc", formDataFile);
-        }
-        console.log("All files uploaded successfully!");
+        await axios.post(url + "service/insertdoc", formDataFile);
       }
 
       // Reset form
       setFormData({
         DeviceName: "",
-        divisionID: activeDivision?.id?.toString() || "",
+        divisionID: activeDivision?.id?.toString(),
         price: "",
         startDate: "",
         endDate: "",
@@ -93,7 +96,7 @@ export default function InsertData({ onSuccess }) {
   const handleClear = () => {
     setFormData({
       DeviceName: "",
-      divisionID: activeDivision?.id?.toString() || "",
+      divisionID: activeDivision?.id?.toString(),
       price: "",
       startDate: "",
       endDate: "",
@@ -130,8 +133,17 @@ export default function InsertData({ onSuccess }) {
   };
 
   return (
-    <div>
-      <h2>Manual Upload</h2>
+    <div responsive="true" className="container-fluid">
+      <div className="row align-items-center mt-4 mb-4">
+        <div className="col-auto">
+          <Button variant="secondary" onClick={() => navigate(-1)}>
+            <i className="fas fa-arrow-left"></i> Back
+          </Button>
+        </div>
+        <div className="col">
+          <h2>Manual Upload</h2>
+        </div>
+      </div>
       <form onSubmit={handleSubmit}>
         <div className="row">
           {/* Device Name */}
@@ -185,7 +197,7 @@ export default function InsertData({ onSuccess }) {
               value={formData.divisionID}
               onChange={handleChange}
               required
-              disabled>
+              disabled={!(user?.permission === "Admin")}>
               <option value="">Select Division</option>
               {division.map((d) => (
                 <option key={d.divisionID} value={d.divisionID}>
@@ -205,6 +217,19 @@ export default function InsertData({ onSuccess }) {
               value={formData.price}
               onChange={handleChange}
               required
+              autoComplete="off"
+            />
+          </div>
+
+          {/* Vendor Name */}
+          <div className="col-md-6 mb-3">
+            <label>Vendor Name</label>
+            <input
+              type="text"
+              className="form-control"
+              name="vendorName"
+              value={formData.vendorName}
+              onChange={handleChange}
               autoComplete="off"
             />
           </div>
@@ -234,19 +259,6 @@ export default function InsertData({ onSuccess }) {
               autoComplete="off"
             />
           </div>
-
-          {/* Vendor Name */}
-          <div className="col-md-6 mb-3">
-            <label>Vendor Name</label>
-            <input
-              type="text"
-              className="form-control"
-              name="vendorName"
-              value={formData.vendorName}
-              onChange={handleChange}
-              autoComplete="off"
-            />
-          </div>
         </div>
 
         {/* File Upload Section */}
@@ -271,7 +283,7 @@ export default function InsertData({ onSuccess }) {
           </div>
           <div className="col-md-4">
             <button
-              className="btn btn-primary w-100"
+              className="btn btn-success"
               onClick={handleUpload}
               type="button"
               disabled={!selectedFile || !fileType}>
@@ -311,7 +323,7 @@ export default function InsertData({ onSuccess }) {
         )}
 
         {/* Buttons */}
-        <div className="form-group mt-3">
+        <div className="form-group mt-3 text-center">
           <button type="submit" className="btn btn-primary">
             Save
           </button>

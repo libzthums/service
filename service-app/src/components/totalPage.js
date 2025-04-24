@@ -10,7 +10,7 @@ export default function TotalPage() {
   const { url } = useContext(UrlContext);
   const location = useLocation();
   const status = location?.state?.status || 1;
-  const { activeDivision } = useUser();
+  const { user, activeDivision } = useUser();
 
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth());
@@ -23,76 +23,84 @@ export default function TotalPage() {
       .then((res) => {
         const result = [];
 
-        res.data
-          .filter((item) => item.divisionID === activeDivision.id)
-          .forEach((item) => {
-            const start = new Date(item.startDate);
-            const end = new Date(item.endDate);
-            const charge = Number(item.monthly_charge);
+        // Permission filtering
+        let visibleData = [];
+        if (user.permissionCode === 2 || user.permissionCode === 3) {
+          visibleData = res.data; // Admins/Managers see everything
+        } else {
+          visibleData = res.data.filter(
+            (item) => item.divisionID === activeDivision.id
+          );
+        }
 
-            const isExpiringSoon =
-              item.expireStatusName?.toLowerCase() === "expire in 3 months";
+        visibleData.forEach((item) => {
+          const start = new Date(item.startDate);
+          const end = new Date(item.endDate);
+          const charge = Number(item.monthly_charge);
 
-            const monthsDiff =
-              (end.getFullYear() - start.getFullYear()) * 12 +
-              (end.getMonth() - start.getMonth());
+          const isExpiringSoon =
+            item.expireStatusName?.toLowerCase() === "expire in 3 months";
 
-            const isPerMonth =
-              status === 1 &&
-              (item.expireStatusName?.toLowerCase() === "issued" ||
-                isExpiringSoon);
+          const monthsDiff =
+            (end.getFullYear() - start.getFullYear()) * 12 +
+            (end.getMonth() - start.getMonth());
 
-            const isPerYear =
-              status === 2 && (monthsDiff >= 11 || isExpiringSoon);
+          const isPerMonth =
+            status === 1 &&
+            (item.expireStatusName?.toLowerCase() === "issued" ||
+              isExpiringSoon);
 
-            if (status === 1) {
-              let current = new Date(start);
-              while (current <= end) {
-                const currentMonth = current.getMonth();
-                const currentYear = current.getFullYear();
-                const inMonth = currentMonth === month && currentYear === year;
+          const isPerYear =
+            status === 2 && (monthsDiff >= 11 || isExpiringSoon);
 
-                if (isPerMonth && inMonth) {
-                  result.push({
-                    ...item,
-                    id: `${item.serviceID}-${currentMonth}`,
-                    displayMonth: new Date(current),
-                    monthlyCharge: charge,
-                  });
-                }
+          if (status === 1) {
+            let current = new Date(start);
+            while (current <= end) {
+              const currentMonth = current.getMonth();
+              const currentYear = current.getFullYear();
+              const inMonth = currentMonth === month && currentYear === year;
 
-                current.setMonth(current.getMonth() + 1);
-              }
-            } else if (status === 2 && isPerYear) {
-              const startY = start.getFullYear();
-              const endY = end.getFullYear();
-
-              if (startY <= year && endY >= year) {
-                const monthsInYear = Array.from(
-                  { length: 12 },
-                  (_, i) => new Date(year, i)
-                );
-                const validMonths = monthsInYear.filter(
-                  (m) => m >= start && m <= end
-                );
-                const monthsCount = validMonths.length;
-
+              if (isPerMonth && inMonth) {
                 result.push({
                   ...item,
-                  id: `${item.serviceID}-${year}`,
-                  displayMonth: new Date(year, 0),
-                  monthlyCharge: charge * monthsCount,
+                  id: `${item.serviceID}-${currentMonth}`,
+                  displayMonth: new Date(current),
+                  monthlyCharge: charge,
                 });
               }
+
+              current.setMonth(current.getMonth() + 1);
             }
-          });
+          } else if (status === 2 && isPerYear) {
+            const startY = start.getFullYear();
+            const endY = end.getFullYear();
+
+            if (startY <= year && endY >= year) {
+              const monthsInYear = Array.from(
+                { length: 12 },
+                (_, i) => new Date(year, i)
+              );
+              const validMonths = monthsInYear.filter(
+                (m) => m >= start && m <= end
+              );
+              const monthsCount = validMonths.length;
+
+              result.push({
+                ...item,
+                id: `${item.serviceID}-${year}`,
+                displayMonth: new Date(year, 0),
+                monthlyCharge: charge * monthsCount,
+              });
+            }
+          }
+        });
 
         setFilteredData(result);
       })
       .catch((err) => {
         console.error("Failed to fetch:", err);
       });
-  }, [url, status, month, year, activeDivision.id]);
+  }, [url, status, month, year, activeDivision.id, user.permissionCode]);
 
   useEffect(() => {
     fetchData();
@@ -202,8 +210,13 @@ export default function TotalPage() {
     },
   ];
 
+  const [paginationModel, setPaginationModel] = useState({
+    pageSize: 10,
+    page: 0,
+  });
+
   return (
-    <div className="p-3 d-flex flex-column" style={{ height: "100%" }}>
+    <div responsive="true" className="container-fluid">
       <h4>
         Total cost {status === 1 ? "per month" : "per year"} in {year}
       </h4>
@@ -250,15 +263,29 @@ export default function TotalPage() {
           rows={filteredData.length > 0 ? filteredData : []}
           columns={columns}
           getRowId={(row) => row.serviceID ?? row.serialNumber ?? row.id}
+          pagination
           pageSize={10}
           disableColumnMenu
-          rowsPerPageOptions={[10, 25, 50]}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50]}
         />
       </div>
 
-      <div className="text-end mt-3 fw-bold fs-5">
-        Total {status === 1 ? "monthly" : "yearly"} cost:
-        {totalPrice.toLocaleString()}
+      <div className="d-flex justify-content-start mt-3">
+        <div
+          className="border rounded p-3 bg-light text-center"
+          style={{ minWidth: "280px" }}>
+          <div className="fw-bold">
+            Total {status === 1 ? "Monthly" : "Yearly"} Cost
+          </div>
+          <div className="fs-5 text-primary">
+            {totalPrice.toLocaleString("th-TH", {
+              style: "currency",
+              currency: "THB",
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
