@@ -30,7 +30,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className={`main-sidebar sidebar-light-primary elevation-4`}>
+    <aside className="main-sidebar sidebar-light-primary elevation-4">
       <Link
         to="/"
         className="brand-link text-center bg-primary"
@@ -70,15 +70,17 @@ export default function Sidebar() {
                     </option>
                   ))}
                 </Form.Select>
-                <div
-                  className="text-center"
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "5px",
-                    borderRadius: "20px",
-                  }}>
-                  {user?.permission}
-                </div>
+                {user?.permission !== "Viewer" && (
+                  <div
+                    className="text-center"
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "5px",
+                      borderRadius: "20px",
+                    }}>
+                    {user?.permission}
+                  </div>
+                )}
                 <div
                   className=""
                   style={{

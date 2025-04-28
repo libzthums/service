@@ -36,9 +36,9 @@ export default function DocDetail() {
   }, [serviceID, url]);
 
   return (
-    <div className="p-4">
+    <div className="p-4 main-container responsive-layout">
       <Button variant="secondary" onClick={() => navigate(-1)}>
-        ← Back
+        <i className="fas fa-arrow-left"></i> Back
       </Button>
       <h2 className="mt-4 text-2xl font-semibold">Document View</h2>
 

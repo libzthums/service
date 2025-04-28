@@ -153,7 +153,7 @@ export default function InsertDocData() {
   });
 
   return (
-    <div responsive="true" className="container-fluid">
+    <div className="main-container responsive-layout">
       <div className="row align-items-center mt-4 mb-4">
         <div className="col-auto">
           <Button variant="secondary" onClick={() => navigate(-1)}>

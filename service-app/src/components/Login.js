@@ -19,11 +19,10 @@ const Login = () => {
         userPassword,
       });
 
-      // Save the JWT token and user data to localStorage
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user)); // Save user data
+      localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      setUser(res.data.user); // Store user info globally in context
+      setUser(res.data.user);
       navigate("/");
     } catch (err) {
       alert("Login failed");
@@ -31,7 +30,17 @@ const Login = () => {
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center min-vh-100">
+    <div
+      className={[
+        "container",
+        "d-flex",
+        "justify-content-center",
+        "align-items-center",
+        "min-vh-100",
+        "main-container",
+        "responsive-layout",
+      ].join(" ")}
+    >
       <div className="card shadow-lg p-4" style={{ width: "300px" }}>
         <h2 className="text-center mb-4">Login</h2>
         <div className="form-group">

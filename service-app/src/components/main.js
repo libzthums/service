@@ -156,7 +156,7 @@ export default function Main() {
         matchesDate(row.endDate, dateOfExpiredQuery) &&
         (!statusQuery ||
           row.expireStatusName?.toLowerCase() === statusQuery.toLowerCase()) &&
-        matchesPriceRange(parseFloat(row.monthly_charge))
+        matchesPriceRange(parseFloat(row.price))
       );
     });
   }, [
@@ -271,7 +271,7 @@ export default function Main() {
   });
 
   return (
-    <div className="container-fluid">
+    <div className="main-container responsive-layout">
       <h2>Service</h2>
 
       <div className="row mt-3">
@@ -375,11 +375,20 @@ export default function Main() {
                   onChange={(e) => setTempTotalPriceQuery(e.target.value)}
                 />
               </div>
-              <div className="col-md-6 mb-3">
+              <div className="col-md-3 mb-3">
                 <FormControl
-                  placeholder="Price / Month"
-                  value={tempPricePerMonthQuery}
-                  onChange={(e) => setTempPricePerMonthQuery(e.target.value)}
+                  type="number"
+                  placeholder="Min Price"
+                  value={tempPriceMin}
+                  onChange={(e) => setTempPriceMin(e.target.value)}
+                />
+              </div>
+              <div className="col-md-3 mb-3">
+                <FormControl
+                  type="number"
+                  placeholder="Max Price"
+                  value={tempPriceMax}
+                  onChange={(e) => setTempPriceMax(e.target.value)}
                 />
               </div>
               <div className="col-md-6 mb-3">
@@ -388,6 +397,17 @@ export default function Main() {
                   value={tempVendorNameQuery}
                   onChange={(e) => setTempVendorNameQuery(e.target.value)}
                 />
+              </div>
+              <div className="col-md-6 mb-3">
+                <Form.Select
+                  value={tempStatusQuery}
+                  onChange={(e) => setTempStatusQuery(e.target.value)}>
+                  {expireStatusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Form.Select>
               </div>
               <div className="col-md-6 mb-3">
                 <FormControl
@@ -405,51 +425,22 @@ export default function Main() {
                   onChange={(e) => setTempDateOfExpiredQuery(e.target.value)}
                 />
               </div>
-              <div className="col-md-6 mb-3">
-                <Form.Select
-                  value={tempStatusQuery}
-                  onChange={(e) => setTempStatusQuery(e.target.value)}>
-                  {expireStatusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Form.Select>
-              </div>
-              <div className="col-md-3 mb-3">
-                <FormControl
-                  type="number"
-                  placeholder="Min Price"
-                  value={tempPriceMin}
-                  onChange={(e) => setTempPriceMin(e.target.value)}
-                />
-              </div>
-              <div className="col-md-3 mb-3">
-                <FormControl
-                  type="number"
-                  placeholder="Max Price"
-                  value={tempPriceMax}
-                  onChange={(e) => setTempPriceMax(e.target.value)}
-                />
-              </div>
-              <div className="col-md-3">
-                <Button
-                  variant="outline-danger"
-                  onClick={() => {
-                    handleClearFilters();
-                  }}>
-                  Clear
-                </Button>
-              </div>
             </div>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowFilterModal(false)}>
-            Cancel
-          </Button>
           <Button variant="primary" onClick={handleApplyFilters}>
             Apply
+          </Button>
+          <Button
+            variant="outline-danger"
+            onClick={() => {
+              handleClearFilters();
+            }}>
+            Clear
+          </Button>
+          <Button variant="secondary" onClick={() => setShowFilterModal(false)}>
+            Cancel
           </Button>
         </Modal.Footer>
       </Modal>

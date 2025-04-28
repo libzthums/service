@@ -11,6 +11,7 @@ import {
   Form,
   Row,
   Col,
+  Table,
 } from "react-bootstrap";
 import { DataGrid } from "@mui/x-data-grid";
 import { useUser } from "../context/userContext";
@@ -53,6 +54,33 @@ export default function Reissue() {
   const [tempDateOfExpiredQuery, setTempDateOfExpiredQuery] = useState("");
   const [tempPriceMin, setTempPriceMin] = useState("");
   const [tempPriceMax, setTempPriceMax] = useState("");
+
+  // File upload states
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileType, setFileType] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+
+  const handleFileChange = (e) => {
+    setSelectedFile(e.target.files[0]);
+  };
+
+  const handleUpload = () => {
+    if (!selectedFile || !fileType) {
+      alert("Please select a file and file type before uploading.");
+      return;
+    }
+
+    setUploadedFiles((prev) => [
+      ...prev,
+      { file: selectedFile, type: fileType },
+    ]);
+    setSelectedFile(null);
+    setFileType("");
+  };
+
+  const handleRemoveFile = (index) => {
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
   // Fetch data
   const fetchData = useCallback(() => {
@@ -305,14 +333,16 @@ export default function Reissue() {
               View
             </Button>
           </Link>
-          <Link>
-            <Button
-              size="sm"
-              variant="warning"
-              onClick={() => handleEditClick(params.row)}>
-              Edit
-            </Button>
-          </Link>
+          {user.permission === "Admin" && (
+            <Link>
+              <Button
+                size="sm"
+                variant="warning"
+                onClick={() => handleEditClick(params.row)}>
+                Edit
+              </Button>
+            </Link>
+          )}
           <Link>
             <Button
               size="sm"
@@ -370,29 +400,43 @@ export default function Reissue() {
       });
   };
 
-  const handleReissueSave = () => {
-    const updatedData = {
-      DeviceName: reissueData.DeviceName,
-      serialNumber: reissueData.serialNumber,
-      contractNo: reissueData.contractNo,
-      price: reissueData.price,
-      vendorName: reissueData.vendorName,
-      vendorPhone: reissueData.vendorPhone,
-      startDate: reissueData.startDate,
-      endDate: reissueData.endDate,
-      divisionID: reissueData.divisionID,
-    };
+  const handleReissueSave = async () => {
+    try {
+      // Submit reissue data
+      const updatedData = {
+        DeviceName: reissueData.DeviceName,
+        serialNumber: reissueData.serialNumber,
+        contractNo: reissueData.contractNo,
+        price: reissueData.price,
+        vendorName: reissueData.vendorName,
+        vendorPhone: reissueData.vendorPhone,
+        startDate: reissueData.startDate,
+        endDate: reissueData.endDate,
+        divisionID: reissueData.divisionID,
+      };
 
-    axios
-      .post(url + `service/insertdata`, updatedData)
-      .then((response) => {
-        console.log("Reissued successfully", response);
-        setShowReissueModal(false);
-        fetchData(); // Refresh grid
-      })
-      .catch((error) => {
-        console.error("Error during reissue:", error);
-      });
+      await axios.post(url + `service/insertdata`, updatedData);
+
+      // Submit uploaded files
+      if (uploadedFiles.length > 0) {
+        const formDataFile = new FormData();
+        uploadedFiles.forEach((file) => {
+          formDataFile.append("files", file.file);
+        });
+        const fileTypes = uploadedFiles.map((file) => file.type);
+        formDataFile.append("fileTypes", JSON.stringify(fileTypes));
+
+        await axios.post(url + "service/insertdoc", formDataFile);
+      }
+
+      alert("Reissue completed successfully!");
+      setShowReissueModal(false);
+      setUploadedFiles([]);
+      fetchData(); // Refresh grid
+    } catch (error) {
+      console.error("Error during reissue:", error);
+      alert("An error occurred. Please try again.");
+    }
   };
 
   const [paginationModel, setPaginationModel] = useState({
@@ -401,7 +445,7 @@ export default function Reissue() {
   });
 
   return (
-    <div responsive="true" className="container-fluid">
+    <div className="main-container responsive-layout">
       <h2>
         Reissue -{" "}
         {status === 1
@@ -485,21 +529,13 @@ export default function Reissue() {
                 <Col md={6}>
                   <Form.Group controlId="formDeviceName">
                     <Form.Label>Device Name</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={editData.DeviceName}
-                      disabled
-                    />
+                    <Form.Control type="text" value={editData.DeviceName} />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group controlId="divisionName">
                     <Form.Label>Division</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={editData.divisionName}
-                      disabled
-                    />
+                    <Form.Control type="text" value={editData.divisionName} />
                   </Form.Group>
                 </Col>
               </Row>
@@ -641,28 +677,14 @@ export default function Reissue() {
                     <Form.Control
                       type="text"
                       value={reissueData.serialNumber}
-                      onChange={(e) =>
-                        setReissueData({
-                          ...reissueData,
-                          serialNumber: e.target.value,
-                        })
-                      }
+                      disabled
                     />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group controlId="formContractNo">
                     <Form.Label>Contract Number</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={reissueData.contractNo}
-                      onChange={(e) =>
-                        setReissueData({
-                          ...reissueData,
-                          contractNo: e.target.value,
-                        })
-                      }
-                    />
+                    <Form.Control type="text" value={reissueData.contractNo} />
                   </Form.Group>
                 </Col>
               </Row>
@@ -731,10 +753,71 @@ export default function Reissue() {
                   </Form.Group>
                 </Col>
               </Row>
+
+              {/* File Upload Section */}
+              <div className="row mt-3">
+                <div className="col-md-4">
+                  <input
+                    type="file"
+                    className="form-control"
+                    onChange={handleFileChange}
+                  />
+                </div>
+                <div className="col-md-4">
+                  <select
+                    className="form-control"
+                    value={fileType}
+                    onChange={(e) => setFileType(e.target.value)}>
+                    <option value="">---Select Type---</option>
+                    <option value="contract">Contract</option>
+                    <option value="pr">PR</option>
+                    <option value="po">PO</option>
+                  </select>
+                </div>
+                <div className="col-md-4">
+                  <button
+                    className="btn btn-success"
+                    onClick={handleUpload}
+                    type="button"
+                    disabled={!selectedFile || !fileType}>
+                    Upload
+                  </button>
+                </div>
+              </div>
+
+              {/* File List */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-3">
+                  <Table bordered>
+                    <thead>
+                      <tr>
+                        <th>File Name</th>
+                        <th>Type</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {uploadedFiles.map((file, index) => (
+                        <tr key={index}>
+                          <td>{file.file.name}</td>
+                          <td>{file.type}</td>
+                          <td>
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleRemoveFile(index)}>
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
             </Form>
           )}
         </Modal.Body>
-        <Modal.Footer className="justify-content-center">
+        <Modal.Footer>
           <Button
             variant="secondary"
             onClick={() => setShowReissueModal(false)}>
@@ -837,22 +920,22 @@ export default function Reissue() {
                   onChange={(e) => setTempDateOfExpiredQuery(e.target.value)}
                 />
               </div>
-              <Button
-                variant="outline-danger"
-                onClick={() => {
-                  handleClearFilters();
-                }}>
-                Clear
-              </Button>
             </div>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowFilterModal(false)}>
-            Cancel
-          </Button>
           <Button variant="primary" onClick={handleApplyFilters}>
             Apply
+          </Button>
+          <Button
+            variant="outline-danger"
+            onClick={() => {
+              handleClearFilters();
+            }}>
+            Clear
+          </Button>
+          <Button variant="secondary" onClick={() => setShowFilterModal(false)}>
+            Cancel
           </Button>
         </Modal.Footer>
       </Modal>

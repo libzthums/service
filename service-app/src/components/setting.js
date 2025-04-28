@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 export default function Setting() {
   return (
-    <div className="d-flex flex-column align-items-center px-3">
+    <div className="d-flex flex-column align-items-center px-3 main-container layout-responsive">
       <h2 className="mb-5 text-center">User Setting</h2>
       <Row className="justify-content-center w-100">
         <Col xs={12} sm={6} md={4} lg={3} className="mb-4">

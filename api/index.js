@@ -10,6 +10,7 @@ const docloader = require("./src/routes/DocUploader");
 const docreader = require("./src/routes/DocReader");
 const login = require("./src/routes/UserChecker");
 const registerroute = require("./src/routes/register");
+const userManage = require("./src/routes/userManage");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -33,13 +34,21 @@ app.set("views", path.join(__dirname, "views"));
 // Middleware
 app.use(express.static("public"));
 
-// Use the data route
+// API Routes
 app.use("/api/service", service);
 app.use("/api/docloader", docloader);
 app.use("/api/docreader", docreader);
 app.use("/api/login", login);
 app.use("/register", registerroute);
-app.use(cors());
+app.use("/api/userManage", userManage);
+
+// Serve React frontend
+app.use(express.static(path.join(__dirname, "..", "service-app", "build")));
+app.get("*", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "..", "service-app", "build", "index.html")
+  );
+});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
