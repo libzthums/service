@@ -75,7 +75,7 @@ export default function SettingPermission() {
   };
 
   return (
-    <div className="p-4 main-container responsive-layout">
+    <div className="p-4 container">
       <div className="row align-items-center mt-4 mb-4">
         <div className="col-auto">
           <Button variant="secondary" onClick={() => navigate(-1)}>
@@ -83,7 +83,7 @@ export default function SettingPermission() {
           </Button>
         </div>
         <div className="col">
-          <h2>Manual Upload</h2>
+          <h2>User Permission</h2>
         </div>
       </div>
 

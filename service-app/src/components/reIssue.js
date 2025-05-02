@@ -12,6 +12,8 @@ import {
   Row,
   Col,
   Table,
+  Tabs,
+  Tab,
 } from "react-bootstrap";
 import { DataGrid } from "@mui/x-data-grid";
 import { useUser } from "../context/userContext";
@@ -31,17 +33,23 @@ export default function Reissue() {
   const { user, activeDivision } = useUser();
 
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [divisionQuery, setDivisionQuery] = useState("");
-  const [totalPriceQuery, setTotalPriceQuery] = useState("");
-  const [pricePerMonthQuery, setPricePerMonthQuery] = useState("");
-  const [vendorNameQuery, setVendorNameQuery] = useState("");
-  const [dateOfIssueQuery, setDateOfIssueQuery] = useState("");
-  const [dateOfExpiredQuery, setDateOfExpiredQuery] = useState("");
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
-  const [deviceQuery, setDeviceQuery] = useState("");
-  const [serialQuery, setSerialQuery] = useState("");
-  const [contractQuery, setContractQuery] = useState("");
+  const [filters, setFilters] = useState({
+    deviceQuery: "",
+    serialQuery: "",
+    contractQuery: "",
+    divisionQuery: "",
+    totalPriceQuery: "",
+    pricePerMonthQuery: "",
+    vendorNameQuery: "",
+    dateOfIssueQuery: "",
+    dateOfExpiredQuery: "",
+    priceMin: "",
+    priceMax: "",
+    Brand: "",
+    Model: "",
+    Type: "",
+    Location: "",
+  });
 
   const [tempDeviceQuery, setTempDeviceQuery] = useState("");
   const [tempSerialQuery, setTempSerialQuery] = useState("");
@@ -54,10 +62,18 @@ export default function Reissue() {
   const [tempDateOfExpiredQuery, setTempDateOfExpiredQuery] = useState("");
   const [tempPriceMin, setTempPriceMin] = useState("");
   const [tempPriceMax, setTempPriceMax] = useState("");
+  const [tempBrand, setTempBrand] = useState("");
+  const [tempModel, setTempModel] = useState("");
+  const [tempType, setTempType] = useState("");
+  const [tempLocation, setTempLocation] = useState("");
+  const [typeList, setTypeList] = useState([]);
 
   // File upload states
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileType, setFileType] = useState("");
+  const [prDocs, setPrDocs] = useState([]);
+  const [poDocs, setPoDocs] = useState([]);
+  const [contractDocs, setContractDocs] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
   const handleFileChange = (e) => {
@@ -70,12 +86,23 @@ export default function Reissue() {
       return;
     }
 
-    setUploadedFiles((prev) => [
-      ...prev,
-      { file: selectedFile, type: fileType },
-    ]);
-    setSelectedFile(null);
-    setFileType("");
+    const formData = new FormData();
+    formData.append("files", selectedFile);
+    formData.append("fileTypes", JSON.stringify([fileType]));
+    formData.append("serviceID", editData.serviceID);
+
+    axios
+      .post(`${url}service/insertdoc`, formData)
+      .then(() => {
+        alert("File uploaded successfully!");
+        fetchDocuments(editData.serviceID); // Refresh document list
+        setSelectedFile(null);
+        setFileType("");
+      })
+      .catch((error) => {
+        console.error("Error uploading file:", error);
+        alert("Failed to upload file. Please try again.");
+      });
   };
 
   const handleRemoveFile = (index) => {
@@ -111,10 +138,11 @@ export default function Reissue() {
         isAdminOrManager || item.divisionID === activeDivision.id;
 
       const statusMatch =
-        (status === 1 && item.expireStatusName?.toLowerCase() === "issued") ||
+        (status === 1 &&
+          ["issued", "expire in 3 months"].includes(
+            item.expireStatusName?.toLowerCase()
+          )) ||
         (status === 2 &&
-          item.expireStatusName?.toLowerCase() === "expire in 3 months") ||
-        (status === 3 &&
           ["just expired", "expired"].includes(
             item.expireStatusName?.toLowerCase()
           ));
@@ -124,110 +152,169 @@ export default function Reissue() {
         item.DeviceName?.toLowerCase().includes(lowerSearch) ||
         item.serialNumber?.toLowerCase().includes(lowerSearch) ||
         item.contractNo?.toLowerCase().includes(lowerSearch) ||
-        item.vendorName?.toLowerCase().includes(lowerSearch);
+        item.vendorName?.toLowerCase().includes(lowerSearch) ||
+        item.Type?.toLowerCase().includes(lowerSearch);
 
       return divisionMatch && statusMatch && searchMatch;
     });
 
-    if (deviceQuery) {
+    if (filters.deviceQuery) {
       result = result.filter((row) =>
-        row.DeviceName?.toLowerCase().includes(deviceQuery.toLowerCase())
+        row.DeviceName?.toLowerCase().includes(
+          filters.deviceQuery.toLowerCase()
+        )
       );
     }
 
-    if (serialQuery) {
+    if (filters.serialQuery) {
       result = result.filter((row) =>
-        row.serialNumber?.toLowerCase().includes(serialQuery.toLowerCase())
+        row.serialNumber
+          ?.toLowerCase()
+          .includes(filters.serialQuery.toLowerCase())
       );
     }
 
-    if (contractQuery) {
+    if (filters.contractQuery) {
       result = result.filter((row) =>
-        row.contractNo?.toLowerCase().includes(contractQuery.toLowerCase())
+        row.contractNo
+          ?.toLowerCase()
+          .includes(filters.contractQuery.toLowerCase())
       );
     }
 
-    if (divisionQuery) {
+    if (filters.divisionQuery) {
       result = result.filter((row) =>
-        row.divisionName?.toLowerCase().includes(divisionQuery.toLowerCase())
+        row.divisionName
+          ?.toLowerCase()
+          .includes(filters.divisionQuery.toLowerCase())
       );
     }
 
-    if (totalPriceQuery) {
+    if (filters.totalPriceQuery) {
       result = result.filter((row) =>
-        row.price?.toString().includes(totalPriceQuery)
+        row.price?.toString().includes(filters.totalPriceQuery)
       );
     }
 
-    if (pricePerMonthQuery) {
+    if (filters.pricePerMonthQuery) {
       result = result.filter((row) =>
-        row.monthly_charge?.toString().includes(pricePerMonthQuery)
+        row.monthly_charge?.toString().includes(filters.pricePerMonthQuery)
       );
     }
 
-    if (vendorNameQuery) {
+    if (filters.vendorNameQuery) {
       result = result.filter((row) =>
-        row.vendorName?.toLowerCase().includes(vendorNameQuery.toLowerCase())
+        row.vendorName
+          ?.toLowerCase()
+          .includes(filters.vendorNameQuery.toLowerCase())
       );
     }
 
-    if (dateOfIssueQuery && !isNaN(new Date(dateOfIssueQuery).getTime())) {
+    if (
+      filters.dateOfIssueQuery &&
+      !isNaN(new Date(filters.dateOfIssueQuery).getTime())
+    ) {
       result = result.filter((row) =>
-        row.startDate?.includes(dateOfIssueQuery)
+        row.startDate?.includes(filters.dateOfIssueQuery)
       );
     }
 
-    if (dateOfExpiredQuery && !isNaN(new Date(dateOfExpiredQuery).getTime())) {
+    if (
+      filters.dateOfExpiredQuery &&
+      !isNaN(new Date(filters.dateOfExpiredQuery).getTime())
+    ) {
       result = result.filter((row) =>
-        row.endDate?.includes(dateOfExpiredQuery)
+        row.endDate?.includes(filters.dateOfExpiredQuery)
       );
     }
 
-    if (priceMin || priceMax) {
+    if (filters.priceMin || filters.priceMax) {
       result = result.filter((row) => {
         const price = parseFloat(row.monthly_charge);
-        const min = priceMin ? parseFloat(priceMin) : -Infinity;
-        const max = priceMax ? parseFloat(priceMax) : Infinity;
+        const min = filters.priceMin ? parseFloat(filters.priceMin) : -Infinity;
+        const max = filters.priceMax ? parseFloat(filters.priceMax) : Infinity;
         return price >= min && price <= max;
       });
     }
 
+    if (filters.Brand) {
+      result = result.filter((row) =>
+        row.Brand?.toLowerCase().includes(filters.Brand.toLowerCase())
+      );
+    }
+
+    if (filters.Model) {
+      result = result.filter((row) =>
+        row.Model?.toLowerCase().includes(filters.Model.toLowerCase())
+      );
+    }
+
+    if (filters.Type) {
+      result = result.filter((row) =>
+        row.Type?.toLowerCase().includes(filters.Type.toLowerCase())
+      );
+    }
+
+    if (filters.Location) {
+      result = result.filter((row) =>
+        row.Location?.toLowerCase().includes(filters.Location.toLowerCase())
+      );
+    }
+
     setFilteredData(result);
-  }, [
-    data,
-    activeDivision,
-    searchQuery,
-    status,
-    user.permissionCode,
-    deviceQuery,
-    serialQuery,
-    contractQuery,
-    divisionQuery,
-    totalPriceQuery,
-    pricePerMonthQuery,
-    vendorNameQuery,
-    dateOfIssueQuery,
-    dateOfExpiredQuery,
-    priceMin,
-    priceMax,
-  ]);
+  }, [data, activeDivision, searchQuery, status, user.permissionCode, filters]);
+
+  useEffect(() => {
+    const fetchTypeList = async () => {
+      try {
+        const response = await axios.get(url + "service/typelist");
+        setTypeList(response.data);
+      } catch (error) {
+        console.error("Error fetching type list:", error);
+      }
+    };
+
+    fetchTypeList();
+  }, [url]);
+
+  const fetchDocuments = async (serviceID) => {
+    try {
+      const prResponse = await axios.get(`${url}docreader/pr/${serviceID}`);
+      const poResponse = await axios.get(`${url}docreader/po/${serviceID}`);
+      const contractResponse = await axios.get(
+        `${url}docreader/contract/${serviceID}`
+      );
+
+      setPrDocs(prResponse.data);
+      setPoDocs(poResponse.data);
+      setContractDocs(contractResponse.data);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+    }
+  };
 
   const handleSearchQueryChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
   const handleClearFilters = () => {
-    setDivisionQuery("");
-    setTotalPriceQuery("");
-    setPricePerMonthQuery("");
-    setVendorNameQuery("");
-    setDateOfIssueQuery("");
-    setDateOfExpiredQuery("");
-    setPriceMin("");
-    setPriceMax("");
-    setDeviceQuery("");
-    setSerialQuery("");
-    setContractQuery("");
+    setFilters({
+      deviceQuery: "",
+      serialQuery: "",
+      contractQuery: "",
+      divisionQuery: "",
+      totalPriceQuery: "",
+      pricePerMonthQuery: "",
+      vendorNameQuery: "",
+      dateOfIssueQuery: "",
+      dateOfExpiredQuery: "",
+      priceMin: "",
+      priceMax: "",
+      Brand: "",
+      Model: "",
+      Type: "",
+      Location: "",
+    });
     setTempDeviceQuery("");
     setTempSerialQuery("");
     setTempContractQuery("");
@@ -239,20 +326,30 @@ export default function Reissue() {
     setTempDateOfExpiredQuery("");
     setTempPriceMin("");
     setTempPriceMax("");
+    setTempBrand("");
+    setTempModel("");
+    setTempType("");
+    setTempLocation("");
   };
 
   const handleApplyFilters = () => {
-    setDeviceQuery(tempDeviceQuery);
-    setSerialQuery(tempSerialQuery);
-    setContractQuery(tempContractQuery);
-    setDivisionQuery(tempDivisionQuery);
-    setTotalPriceQuery(tempTotalPriceQuery);
-    setPricePerMonthQuery(tempPricePerMonthQuery);
-    setVendorNameQuery(tempVendorNameQuery);
-    setDateOfIssueQuery(tempDateOfIssueQuery);
-    setDateOfExpiredQuery(tempDateOfExpiredQuery);
-    setPriceMin(tempPriceMin);
-    setPriceMax(tempPriceMax);
+    setFilters({
+      deviceQuery: tempDeviceQuery,
+      serialQuery: tempSerialQuery,
+      contractQuery: tempContractQuery,
+      divisionQuery: tempDivisionQuery,
+      totalPriceQuery: tempTotalPriceQuery,
+      pricePerMonthQuery: tempPricePerMonthQuery,
+      vendorNameQuery: tempVendorNameQuery,
+      dateOfIssueQuery: tempDateOfIssueQuery,
+      dateOfExpiredQuery: tempDateOfExpiredQuery,
+      priceMin: tempPriceMin,
+      priceMax: tempPriceMax,
+      Brand: tempBrand,
+      Model: tempModel,
+      Type: tempType,
+      Location: tempLocation,
+    });
     setShowFilterModal(false);
   };
 
@@ -281,9 +378,13 @@ export default function Reissue() {
 
   // DataGrid Columns
   const columns = [
-    { field: "DeviceName", headerName: "Device", flex: 1, minWidth: 100 },
+    { field: "DeviceName", headerName: "Description", flex: 1, minWidth: 170 },
     { field: "serialNumber", headerName: "S/N", flex: 1, minWidth: 100 },
     { field: "contractNo", headerName: "Contract No.", flex: 1, minWidth: 100 },
+    { field: "Brand", headerName: "Brand", flex: 1, minWidth: 100 },
+    { field: "Model", headerName: "Model", flex: 1, minWidth: 100 },
+    { field: "Type", headerName: "Type", flex: 1, minWidth: 100 },
+    { field: "Location", headerName: "Location", flex: 1, minWidth: 100 },
     { field: "divisionName", headerName: "Division", flex: 1, minWidth: 100 },
     { field: "price", headerName: "Total Price", flex: 1, minWidth: 100 },
     {
@@ -315,15 +416,22 @@ export default function Reissue() {
       headerName: "Status",
       flex: 1,
       minWidth: 100,
-      renderCell: (params) => (
-        <Badge pill bg={getStatusVariant(params.row?.expireStatusName)}>
-          {params.row?.expireStatusName || "N/A"}
-        </Badge>
-      ),
+      renderCell: (params) => {
+        const status =
+          params.row?.expireStatusName?.toLowerCase() === "expire in 3 months"
+            ? "Issued"
+            : params.row?.expireStatusName || "N/A";
+
+        return (
+          <Badge pill bg={getStatusVariant(params.row?.expireStatusName)}>
+            {status}
+          </Badge>
+        );
+      },
     },
     {
       field: "actions",
-      headerName: "Actions",
+      headerName: "",
       flex: 1.5,
       minWidth: 250,
       renderCell: (params) => (
@@ -333,16 +441,14 @@ export default function Reissue() {
               View
             </Button>
           </Link>
-          {user.permission === "Admin" && (
-            <Link>
-              <Button
-                size="sm"
-                variant="warning"
-                onClick={() => handleEditClick(params.row)}>
-                Edit
-              </Button>
-            </Link>
-          )}
+          <Link>
+            <Button
+              size="sm"
+              variant="warning"
+              onClick={() => handleEditClick(params.row)}>
+              Edit
+            </Button>
+          </Link>
           <Link>
             <Button
               size="sm"
@@ -365,6 +471,7 @@ export default function Reissue() {
 
   const handleEditClick = (rowData) => {
     setEditData({ ...rowData });
+    fetchDocuments(rowData.serviceID); // Fetch related documents
     setShowEditModal(true);
   };
 
@@ -375,7 +482,6 @@ export default function Reissue() {
 
   const handleSaveChanges = () => {
     const updatedData = {};
-
     if (editData.DeviceName) updatedData.DeviceName = editData.DeviceName;
     if (editData.divisionName) updatedData.divisionName = editData.divisionName;
     if (editData.serialNumber) updatedData.serialNumber = editData.serialNumber;
@@ -386,6 +492,10 @@ export default function Reissue() {
     if (editData.startDate) updatedData.startDate = editData.startDate;
     if (editData.endDate) updatedData.endDate = editData.endDate;
     if (editData.divisionID) updatedData.divisionID = editData.divisionID;
+    if (editData.Brand) updatedData.Brand = editData.Brand;
+    if (editData.Model) updatedData.Model = editData.Model;
+    if (editData.Type) updatedData.Type = editData.Type;
+    if (editData.Location) updatedData.Location = editData.Location;
 
     // Only send the fields that are provided (non-empty)
     axios
@@ -397,6 +507,7 @@ export default function Reissue() {
       })
       .catch((error) => {
         console.error("Error updating data:", error);
+        alert("Failed to update data. Please try again.");
       });
   };
 
@@ -413,6 +524,10 @@ export default function Reissue() {
         startDate: reissueData.startDate,
         endDate: reissueData.endDate,
         divisionID: reissueData.divisionID,
+        Brand: reissueData.Brand,
+        Model: reissueData.Model,
+        Type: reissueData.Type,
+        Location: reissueData.Location,
       };
 
       await axios.post(url + `service/insertdata`, updatedData);
@@ -445,14 +560,10 @@ export default function Reissue() {
   });
 
   return (
-    <div className="main-container responsive-layout">
+    <div className="container p-4">
       <h2>
         Reissue -{" "}
-        {status === 1
-          ? "Issued"
-          : status === 2
-          ? "Expire in 3 Months"
-          : "Expired Issues"}
+        {status === 1 ? "Issued" : status === 2 ? "Expire Issues" : ""}
       </h2>
 
       {/* Search Bar */}
@@ -516,9 +627,9 @@ export default function Reissue() {
 
       {/* Edit Modal */}
       <Modal
+        size="lg"
         show={showEditModal}
-        onHide={() => setShowEditModal(false)}
-        animation={true}>
+        onHide={() => setShowEditModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Edit Service</Modal.Title>
         </Modal.Header>
@@ -528,7 +639,7 @@ export default function Reissue() {
               <Row>
                 <Col md={6}>
                   <Form.Group controlId="formDeviceName">
-                    <Form.Label>Device Name</Form.Label>
+                    <Form.Label>Description</Form.Label>
                     <Form.Control type="text" value={editData.DeviceName} />
                   </Form.Group>
                 </Col>
@@ -539,11 +650,10 @@ export default function Reissue() {
                   </Form.Group>
                 </Col>
               </Row>
-
               <Row>
                 <Col md={6}>
                   <Form.Group controlId="formSerialNumber">
-                    <Form.Label>Serial Number</Form.Label>
+                    <Form.Label>S/N</Form.Label>
                     <Form.Control
                       type="text"
                       value={editData.serialNumber}
@@ -558,7 +668,7 @@ export default function Reissue() {
                 </Col>
                 <Col md={6}>
                   <Form.Group controlId="formContractNo">
-                    <Form.Label>Contract Number</Form.Label>
+                    <Form.Label>Contract No.</Form.Label>
                     <Form.Control
                       type="text"
                       value={editData.contractNo}
@@ -569,7 +679,63 @@ export default function Reissue() {
                   </Form.Group>
                 </Col>
               </Row>
-
+              <Row>
+                <Col md={6}>
+                  <Form.Group controlId="formBrand">
+                    <Form.Label>Brand</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={editData.Brand}
+                      onChange={(e) =>
+                        setEditData({ ...editData, Brand: e.target.value })
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group controlId="formModel">
+                    <Form.Label>Model</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={editData.Model}
+                      onChange={(e) =>
+                        setEditData({ ...editData, Model: e.target.value })
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+              <Row>
+                <Col md={6}>
+                  <Form.Group controlId="formType">
+                    <Form.Label>Type</Form.Label>
+                    <Form.Select
+                      value={editData.Type || ""}
+                      onChange={(e) =>
+                        setEditData({ ...editData, Type: e.target.value })
+                      }>
+                      <option value=""></option>
+                      {typeList.map((type) => (
+                        <option key={type.TypeId} value={type.TypeName}>
+                          {type.TypeName}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group controlId="formLocation">
+                    <Form.Label>Location</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={editData.Location}
+                      onChange={(e) =>
+                        setEditData({ ...editData, Location: e.target.value })
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
               <Row>
                 <Col md={6}>
                   <Form.Group controlId="formPrice">
@@ -623,6 +789,112 @@ export default function Reissue() {
                   </Form.Group>
                 </Col>
               </Row>
+
+              {/* File Upload Section */}
+              <Row className="mt-3">
+                <Col md={4}>
+                  <Form.Control type="file" onChange={handleFileChange} />
+                </Col>
+                <Col md={4}>
+                  <Form.Select
+                    value={fileType}
+                    onChange={(e) => setFileType(e.target.value)}>
+                    <option value="">---Select Type---</option>
+                    <option value="contract">Contract</option>
+                    <option value="pr">PR</option>
+                    <option value="po">PO</option>
+                  </Form.Select>
+                </Col>
+                <Col md={4}>
+                  <Button
+                    variant="success"
+                    onClick={handleUpload}
+                    type="button"
+                    disabled={!selectedFile || !fileType}>
+                    Upload
+                  </Button>
+                </Col>
+              </Row>
+
+              {/* Document Tabs Section */}
+              <Row className="mt-4">
+                <Col>
+                  <Tabs
+                    defaultActiveKey="pr"
+                    id="document-tabs"
+                    className="mb-3"
+                    variant="pills">
+                    <Tab
+                      eventKey="pr"
+                      title="PR"
+                      disabled={prDocs.length === 0}
+                      className="border-top border-bottom border-secondary border-2">
+                      {prDocs.length > 0 ? (
+                        <ul>
+                          {prDocs.map((doc, index) => (
+                            <li key={index}>
+                              <a
+                                href={doc.DocPath}
+                                target="_blank"
+                                rel="noopener noreferrer">
+                                {doc.DocName}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No PR documents available.</p>
+                      )}
+                    </Tab>
+
+                    <Tab
+                      eventKey="po"
+                      title="PO"
+                      disabled={poDocs.length === 0}
+                      className="border-top border-bottom border-secondary border-2">
+                      {poDocs.length > 0 ? (
+                        <ul>
+                          {poDocs.map((doc, index) => (
+                            <li key={index}>
+                              <a
+                                href={doc.DocPath}
+                                target="_blank"
+                                rel="noopener noreferrer">
+                                {doc.DocName}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No PO documents available.</p>
+                      )}
+                    </Tab>
+
+                    <Tab
+                      eventKey="contract"
+                      title="Contract"
+                      disabled={contractDocs.length === 0}
+                      className="border-top border-bottom border-secondary border-2">
+                      {contractDocs.length > 0 ? (
+                        <ul>
+                          {contractDocs.map((doc, index) => (
+                            <li key={index}>
+                              <a
+                                href={doc.DocPath}
+                                target="_blank"
+                                rel="noopener noreferrer">
+                                {doc.DocName}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No Contract documents available.</p>
+                      )}
+                    </Tab>
+                  </Tabs>
+                </Col>
+              </Row>
             </Form>
           )}
         </Modal.Body>
@@ -638,9 +910,9 @@ export default function Reissue() {
 
       {/* Reissue Modal */}
       <Modal
+        size="lg"
         show={showReissueModal}
-        onHide={() => setShowReissueModal(false)}
-        animation={true}>
+        onHide={() => setShowReissueModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Reissue Device</Modal.Title>
         </Modal.Header>
@@ -650,7 +922,7 @@ export default function Reissue() {
               <Row>
                 <Col md={6}>
                   <Form.Group controlId="formDeviceName">
-                    <Form.Label>Device Name</Form.Label>
+                    <Form.Label>Description</Form.Label>
                     <Form.Control
                       type="text"
                       value={reissueData.DeviceName}
@@ -673,7 +945,7 @@ export default function Reissue() {
               <Row>
                 <Col md={6}>
                   <Form.Group controlId="formSerialNumber">
-                    <Form.Label>Serial Number</Form.Label>
+                    <Form.Label>S/N</Form.Label>
                     <Form.Control
                       type="text"
                       value={reissueData.serialNumber}
@@ -683,8 +955,47 @@ export default function Reissue() {
                 </Col>
                 <Col md={6}>
                   <Form.Group controlId="formContractNo">
-                    <Form.Label>Contract Number</Form.Label>
+                    <Form.Label>Contract No.</Form.Label>
                     <Form.Control type="text" value={reissueData.contractNo} />
+                  </Form.Group>
+                </Col>
+              </Row>
+              <Row>
+                <Col md={6}>
+                  <Form.Group controlId="formBrand">
+                    <Form.Label>Brand</Form.Label>
+                    <Form.Control type="text" value={reissueData.Brand} />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group controlId="formModel">
+                    <Form.Label>Model</Form.Label>
+                    <Form.Control type="text" value={reissueData.Model} />
+                  </Form.Group>
+                </Col>
+              </Row>
+              <Row>
+                <Col md={6}>
+                  <Form.Group controlId="formType">
+                    <Form.Label>Type</Form.Label>
+                    <Form.Select
+                      value={reissueData.Type || ""}
+                      onChange={(e) =>
+                        setReissueData({ ...reissueData, Type: e.target.value })
+                      }>
+                      <option value="">Select Type</option>
+                      {typeList.map((type) => (
+                        <option key={type.TypeId} value={type.TypeName}>
+                          {type.TypeName}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group controlId="formLocation">
+                    <Form.Label>Location</Form.Label>
+                    <Form.Control type="text" value={reissueData.Location} />
                   </Form.Group>
                 </Col>
               </Row>
@@ -755,35 +1066,30 @@ export default function Reissue() {
               </Row>
 
               {/* File Upload Section */}
-              <div className="row mt-3">
-                <div className="col-md-4">
-                  <input
-                    type="file"
-                    className="form-control"
-                    onChange={handleFileChange}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <select
-                    className="form-control"
+              <Row className="mt-3">
+                <Col md={4}>
+                  <Form.Control type="file" onChange={handleFileChange} />
+                </Col>
+                <Col md={4}>
+                  <Form.Select
                     value={fileType}
                     onChange={(e) => setFileType(e.target.value)}>
                     <option value="">---Select Type---</option>
                     <option value="contract">Contract</option>
                     <option value="pr">PR</option>
                     <option value="po">PO</option>
-                  </select>
-                </div>
-                <div className="col-md-4">
-                  <button
-                    className="btn btn-success"
+                  </Form.Select>
+                </Col>
+                <Col md={4}>
+                  <Button
+                    variant="success"
                     onClick={handleUpload}
                     type="button"
                     disabled={!selectedFile || !fileType}>
                     Upload
-                  </button>
-                </div>
-              </div>
+                  </Button>
+                </Col>
+              </Row>
 
               {/* File List */}
               {uploadedFiles.length > 0 && (
@@ -829,109 +1135,130 @@ export default function Reissue() {
         </Modal.Footer>
       </Modal>
 
-      <Modal
-        show={showFilterModal}
-        onHide={() => setShowFilterModal(false)}
-        centered>
+      {/* Filter Modal */}
+      <Modal show={showFilterModal} onHide={() => setShowFilterModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Filter Options</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <div className="row px-3 mt-3">
-              <div className="col-md-6 mb-3">
+            <Row className="px-3 mt-3">
+              <Col md={6} className="mb-3">
                 <FormControl
-                  placeholder="Device Name"
+                  placeholder="Description"
                   value={tempDeviceQuery}
                   onChange={(e) => setTempDeviceQuery(e.target.value)}
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+              <Col md={6} className="mb-3" />
+              <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="S/N"
                   value={tempSerialQuery}
                   onChange={(e) => setTempSerialQuery(e.target.value)}
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+              <Col md={6} className="mb-3">
                 <FormControl
-                  placeholder="Contract Number"
+                  placeholder="Contract No."
                   value={tempContractQuery}
                   onChange={(e) => setTempContractQuery(e.target.value)}
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+              <Col md={6} className="mb-3">
                 <FormControl
-                  placeholder="Division"
-                  value={tempDivisionQuery}
-                  onChange={(e) => setTempDivisionQuery(e.target.value)}
+                  placeholder="Brand"
+                  value={tempBrand}
+                  onChange={(e) => setTempBrand(e.target.value)}
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+              <Col md={6} className="mb-3">
+                <FormControl
+                  placeholder="Model"
+                  value={tempModel}
+                  onChange={(e) => setTempModel(e.target.value)}
+                />
+              </Col>
+              <Col md={6} className="mb-3">
+                <Form.Select
+                  value={tempType}
+                  onChange={(e) => setTempType(e.target.value)}>
+                  <option value="">Select Type</option>
+                  {typeList.map((type) => (
+                    <option key={type.TypeId} value={type.TypeName}>
+                      {type.TypeName}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+              <Col md={6} className="mb-3">
+                <FormControl
+                  placeholder="Location"
+                  value={tempLocation}
+                  onChange={(e) => setTempLocation(e.target.value)}
+                />
+              </Col>
+              <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="Total Price"
                   value={tempTotalPriceQuery}
                   onChange={(e) => setTempTotalPriceQuery(e.target.value)}
                 />
-              </div>
-              <div className="col-md-6 mb-3">
-                <FormControl
-                  placeholder="Price / Month"
-                  value={tempPricePerMonthQuery}
-                  onChange={(e) => setTempPricePerMonthQuery(e.target.value)}
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <FormControl
-                  placeholder="Vendor"
-                  value={tempVendorNameQuery}
-                  onChange={(e) => setTempVendorNameQuery(e.target.value)}
-                />
-              </div>
-              <div className="col-md-3 mb-3">
+              </Col>
+              <Col md={3} className="mb-3">
                 <FormControl
                   type="number"
                   placeholder="Min Price"
                   value={tempPriceMin}
                   onChange={(e) => setTempPriceMin(e.target.value)}
                 />
-              </div>
-              <div className="col-md-3 mb-3">
+              </Col>
+              <Col md={3} className="mb-3">
                 <FormControl
                   type="number"
                   placeholder="Max Price"
                   value={tempPriceMax}
                   onChange={(e) => setTempPriceMax(e.target.value)}
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+              <Col md={6} className="mb-3">
                 <FormControl
-                  type="date"
-                  placeholder="Date of Issue"
-                  value={tempDateOfIssueQuery}
-                  onChange={(e) => setTempDateOfIssueQuery(e.target.value)}
+                  placeholder="Vendor"
+                  value={tempVendorNameQuery}
+                  onChange={(e) => setTempVendorNameQuery(e.target.value)}
                 />
-              </div>
-              <div className="col-md-6 mb-3">
-                <FormControl
-                  type="date"
-                  placeholder="Date of Expired"
-                  value={tempDateOfExpiredQuery}
-                  onChange={(e) => setTempDateOfExpiredQuery(e.target.value)}
-                />
-              </div>
-            </div>
+              </Col>
+              <Col md={6} className="mb-3" />
+              <Col md={6} className="mb-3">
+                <Form.Group controlId="formDateOfIssue">
+                  <Form.Label>Date of Issue</Form.Label>
+                  <FormControl
+                    type="date"
+                    placeholder="Date of Issue"
+                    value={tempDateOfIssueQuery}
+                    onChange={(e) => setTempDateOfIssueQuery(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6} className="mb-3">
+                <Form.Group controlId="formDateOfExpired">
+                  <Form.Label>Date of Expired</Form.Label>
+                  <FormControl
+                    type="date"
+                    placeholder="Date of Expired"
+                    value={tempDateOfExpiredQuery}
+                    onChange={(e) => setTempDateOfExpiredQuery(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
           </Form>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="primary" onClick={handleApplyFilters}>
             Apply
           </Button>
-          <Button
-            variant="outline-danger"
-            onClick={() => {
-              handleClearFilters();
-            }}>
+          <Button variant="outline-danger" onClick={handleClearFilters}>
             Clear
           </Button>
           <Button variant="secondary" onClick={() => setShowFilterModal(false)}>

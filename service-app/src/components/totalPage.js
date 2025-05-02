@@ -216,7 +216,7 @@ export default function TotalPage() {
   });
 
   return (
-    <div className="main-container responsive-layout">
+    <div className="container p-4">
       <h4>
         Total cost {status === 1 ? "per month" : "per year"} in {year}
       </h4>

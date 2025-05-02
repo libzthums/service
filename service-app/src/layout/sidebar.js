@@ -55,24 +55,27 @@ export default function Sidebar() {
                   }}>
                   {user?.name}
                 </div>
-                <Form.Select
-                  value={activeDivision?.id}
-                  onChange={handleDivisionChange}
-                  className="form-control mt-1 mb-1 text-center"
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "5px",
-                    borderRadius: "20px",
-                  }}>
-                  {user?.divisionIDs?.map((id, idx) => (
-                    <option key={id} value={id}>
-                      {user.divisionNames?.[idx] || `Division ${id}`}
-                    </option>
-                  ))}
-                </Form.Select>
+                {user?.permission !== "Admin" && user?.permission !== "Manager" && (
+                  <Form.Select
+                    value={activeDivision?.id}
+                    onChange={handleDivisionChange}
+                    className="form-control mt-1 mb-1 text-center"
+                    id="divisionSelect"
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "5px",
+                      borderRadius: "20px",
+                    }}>
+                    {user?.divisionIDs?.map((id, idx) => (
+                      <option key={id} value={id}>
+                        {user.divisionNames?.[idx] || `Division ${id}`}
+                      </option>
+                    ))}
+                  </Form.Select>
+                )}
                 {user?.permission !== "Viewer" && (
                   <div
-                    className="text-center"
+                    className="text-center mt-1"
                     style={{
                       border: "1px solid #ccc",
                       padding: "5px",
@@ -81,12 +84,7 @@ export default function Sidebar() {
                     {user?.permission}
                   </div>
                 )}
-                <div
-                  className=""
-                  style={{
-                    borderBottom: "1px solid #ccc",
-                    padding: "20px",
-                  }}></div>
+                <div className="border-bottom p-3 border-2 border-secondary"></div>
               </li>
             )}
             <div style={{ marginTop: "35px" }}></div>
@@ -113,15 +111,10 @@ export default function Sidebar() {
                 className={`nav nav-treeview ${
                   isReissueOpen ? "d-block" : "d-none"
                 }`}>
-                <NavItem to="/reissuePage" state={{ status: 1 }} label="">
+                <NavItem to="/reissuePage" state={{ status: 1 }}>
                   <span style={{ marginLeft: "34.5px" }}>Issued</span>
                 </NavItem>
-                <NavItem to="/reissuePage" state={{ status: 2 }} label="">
-                  <span style={{ marginLeft: "34.5px" }}>
-                    Expire in 3 months
-                  </span>
-                </NavItem>
-                <NavItem to="/reissuePage" state={{ status: 3 }} label="">
+                <NavItem to="/reissuePage" state={{ status: 2 }}>
                   <span style={{ marginLeft: "34.5px" }}>Expired Issue</span>
                 </NavItem>
               </ul>

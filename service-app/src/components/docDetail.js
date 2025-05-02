@@ -36,7 +36,7 @@ export default function DocDetail() {
   }, [serviceID, url]);
 
   return (
-    <div className="p-4 main-container responsive-layout">
+    <div className="p-4 container">
       <Button variant="secondary" onClick={() => navigate(-1)}>
         <i className="fas fa-arrow-left"></i> Back
       </Button>
@@ -47,7 +47,7 @@ export default function DocDetail() {
         id="uncontrolled-tab-example"
         className="mb-3"
         variant="pills">
-        <Tab eventKey="pr" title="PR" disabled={prDocs.length === 0}>
+        <Tab eventKey="pr" title="PR" className="border-top border-bottom border-secondary border-2" disabled={prDocs.length === 0}>
           {prDocs.length > 0 ? (
             <ul>
               {prDocs.map((doc, index) => (
@@ -66,7 +66,7 @@ export default function DocDetail() {
           )}
         </Tab>
 
-        <Tab eventKey="po" title="PO" disabled={poDocs.length === 0}>
+        <Tab eventKey="po" title="PO" className="border-top border-bottom border-secondary border-2" disabled={poDocs.length === 0}>
           {poDocs.length > 0 ? (
             <ul>
               {poDocs.map((doc, index) => (
@@ -88,6 +88,7 @@ export default function DocDetail() {
         <Tab
           eventKey="contract"
           title="Contract"
+          className="border-top border-bottom border-secondary border-2"
           disabled={contractDocs.length === 0}>
           {contractDocs.length > 0 ? (
             <ul>

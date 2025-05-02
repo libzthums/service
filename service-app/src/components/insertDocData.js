@@ -46,21 +46,22 @@ export default function InsertDocData() {
         const parseDate = (value) => {
           if (!value) return "";
           if (typeof value === "number") {
-            // Convert Excel serial number to JS date string
-            const excelDate = XLSX.SSF
-              ? XLSX.SSF.format("yyyy-mm-dd", value)
-              : new Date((value - 25569) * 86400 * 1000)
-                  .toISOString()
-                  .split("T")[0];
-            return excelDate;
+            return new Date((value - 25569) * 86400 * 1000).toISOString().split("T")[0];
           }
-          return value; // Assume it's already a string
+          if (typeof value === "string" && !isNaN(Date.parse(value))) {
+            return new Date(value).toISOString().split("T")[0];
+          }
+          return "";
         };
 
         return {
-          DeviceName: row.DeviceName || row["Device Name"] || "",
-          serialNumber: row.serialNumber || row["Serial Number"] || "",
-          contractNo: row.contractNo || row["Contract Number"] || "",
+          DeviceName: row.Description || row["Description"] || "",
+          serialNumber: row.serialNumber || row["S/N"] || "",
+          contractNo: row.ContractNo || row["Contract No."] || "",
+          Brand: row.Brand || row["Brand"] || "",
+          Model: row.Model || row["Model"] || "",
+          Type: row.Type || row["Type"] || "",
+          Location: row.Location || row["Location"] || "",
           divisionID: row.divisionID || row["Division ID"] || "",
           price: parseFloat(
             row.price ||
@@ -153,7 +154,7 @@ export default function InsertDocData() {
   });
 
   return (
-    <div className="main-container responsive-layout">
+    <div className="container p-4">
       <div className="row align-items-center mt-4 mb-4">
         <div className="col-auto">
           <Button variant="secondary" onClick={() => navigate(-1)}>

@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "addtype",
         "blackadduser",
         "boostrap",
         "DATEDIFF",
@@ -8,6 +9,7 @@
         "docloader",
         "docreader",
         "docuploader",
+        "formtype",
         "insertdata",
         "insertdoc",
         "insertexcel",
@@ -23,8 +25,10 @@
         "recordset",
         "registerroute",
         "treeview",
+        "typelist",
         "updatedata",
         "userlogin",
-        "wordprocessingml"
+        "wordprocessingml",
+        "xxls"
     ]
 }

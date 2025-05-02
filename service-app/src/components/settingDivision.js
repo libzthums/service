@@ -13,28 +13,24 @@ export default function SettingDivision() {
   const { url } = useContext(UrlContext);
   const navigate = useNavigate();
 
-  // Fetch users and divisions
+  // Fetch users and divisions, and return fetched users
   const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(url + "userManage");
       const { users, divisions } = response.data;
       setUserList(users);
       setDivisionList(divisions);
-
-      // If a user is selected, update their latest division info
-      if (selectedUser) {
-        const updatedUser = users.find((u) => u.userID === selectedUser.userID);
-        setSelectedUser(updatedUser || null);
-      }
+      return users;
     } catch (error) {
       console.error("Error fetching user data:", error);
       alert("Failed to fetch user data. Please try again later.");
+      return [];
     }
-  }, [url, selectedUser]);
+  }, [url]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData, url]);
+  }, [fetchData]);
 
   const handleUserClick = (user) => {
     setSelectedUser(user);
@@ -55,8 +51,13 @@ export default function SettingDivision() {
 
       alert("Division added to user successfully!");
       setSelectedDivision("");
-      await fetchData();
-      setActiveTab("division"); 
+
+      // Refresh data and update selected user from the new list
+      const updatedUsers = await fetchData();
+      const updatedUser = updatedUsers.find(u => u.userID === selectedUser.userID);
+      setSelectedUser(updatedUser);
+
+      setActiveTab("division");
     } catch (error) {
       console.error("Error adding division to user:", error);
       alert("Failed to add division to user. Please try again.");
@@ -64,22 +65,20 @@ export default function SettingDivision() {
   };
 
   return (
-    <div className="p-4 main-container responsive-layout">
-      <div className="row align-items-center mt-4 mb-4">
-        <div className="col-auto">
+    <div className="p-4 container">
+      <Row className="align-items-center mt-4 mb-4">
+        <Col xs="auto">
           <Button variant="secondary" onClick={() => navigate(-1)}>
             <i className="fas fa-arrow-left"></i> Back
           </Button>
-        </div>
-        <div className="col">
+        </Col>
+        <Col>
           <h2>User Division</h2>
-        </div>
-      </div>
+        </Col>
+      </Row>
 
-      {/* Form Section */}
       <div className="d-flex flex-column align-items-center mb-4">
         <Form className="w-100" style={{ maxWidth: "600px" }}>
-          {/* Username Field */}
           <Form.Group
             as={Row}
             className="mb-3 justify-content-center"
@@ -96,7 +95,6 @@ export default function SettingDivision() {
             </Col>
           </Form.Group>
 
-          {/* Division Dropdown */}
           <Form.Group
             as={Row}
             className="mb-3 justify-content-center"
@@ -129,7 +127,6 @@ export default function SettingDivision() {
         </Form>
       </div>
 
-      {/* Tabs */}
       <Tabs
         activeKey={activeTab}
         onSelect={(k) => setActiveTab(k)}

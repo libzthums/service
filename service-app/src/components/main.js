@@ -15,6 +15,10 @@ import {
   FormControl,
   Modal,
   Form,
+  Col,
+  Row,
+  FormGroup,
+  FormLabel,
 } from "react-bootstrap";
 import { DataGrid } from "@mui/x-data-grid";
 import { useUser } from "../context/userContext";
@@ -26,34 +30,32 @@ export default function Main() {
   const { user, activeDivision } = useUser();
 
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [divisionQuery, setDivisionQuery] = useState("");
-  const [totalPriceQuery, setTotalPriceQuery] = useState("");
-  const [pricePerMonthQuery, setPricePerMonthQuery] = useState("");
-  const [vendorNameQuery, setVendorNameQuery] = useState("");
-  const [dateOfIssueQuery, setDateOfIssueQuery] = useState("");
-  const [dateOfExpiredQuery, setDateOfExpiredQuery] = useState("");
-  const [statusQuery, setStatusQuery] = useState("");
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
-  const [deviceQuery, setDeviceQuery] = useState("");
-  const [serialQuery, setSerialQuery] = useState("");
-  const [contractQuery, setContractQuery] = useState("");
 
-  const [tempDeviceQuery, setTempDeviceQuery] = useState("");
-  const [tempSerialQuery, setTempSerialQuery] = useState("");
-  const [tempContractQuery, setTempContractQuery] = useState("");
-  const [tempDivisionQuery, setTempDivisionQuery] = useState("");
-  const [tempTotalPriceQuery, setTempTotalPriceQuery] = useState("");
-  const [tempPricePerMonthQuery, setTempPricePerMonthQuery] = useState("");
-  const [tempVendorNameQuery, setTempVendorNameQuery] = useState("");
-  const [tempDateOfIssueQuery, setTempDateOfIssueQuery] = useState("");
-  const [tempDateOfExpiredQuery, setTempDateOfExpiredQuery] = useState("");
-  const [tempStatusQuery, setTempStatusQuery] = useState("");
-  const [tempPriceMin, setTempPriceMin] = useState("");
-  const [tempPriceMax, setTempPriceMax] = useState("");
+  // Consolidate all filter states into a single object
+  const [filters, setFilters] = useState({
+    divisionQuery: "",
+    totalPriceQuery: "",
+    pricePerMonthQuery: "",
+    vendorNameQuery: "",
+    dateOfIssueQuery: "",
+    dateOfExpiredQuery: "",
+    statusQuery: "",
+    priceMin: "",
+    priceMax: "",
+    deviceQuery: "",
+    serialQuery: "",
+    contractQuery: "",
+    brandQuery: "",
+    modelQuery: "",
+    typeQuery: "",
+    locationQuery: "",
+  });
+
+  const [tempFilters, setTempFilters] = useState({ ...filters });
+  const [typeList, setTypeList] = useState([]);
 
   const expireStatusOptions = [
-    { label: "All", value: "" },
+    { label: "All Status", value: "" },
     { label: "Issued", value: "issued" },
     { label: "Expire in 3 months", value: "expire in 3 months" },
     { label: "Just Expired", value: "just expired" },
@@ -61,46 +63,31 @@ export default function Main() {
   ];
 
   const handleClearFilters = () => {
-    setDivisionQuery("");
-    setTotalPriceQuery("");
-    setPricePerMonthQuery("");
-    setVendorNameQuery("");
-    setDateOfIssueQuery("");
-    setDateOfExpiredQuery("");
-    setStatusQuery("");
-    setPriceMin("");
-    setPriceMax("");
-    setDeviceQuery("");
-    setSerialQuery("");
-    setContractQuery("");
-    setTempDeviceQuery("");
-    setTempSerialQuery("");
-    setTempContractQuery("");
-    setTempDivisionQuery("");
-    setTempTotalPriceQuery("");
-    setTempPricePerMonthQuery("");
-    setTempVendorNameQuery("");
-    setTempDateOfIssueQuery("");
-    setTempDateOfExpiredQuery("");
-    setTempStatusQuery("");
-    setTempPriceMin("");
-    setTempPriceMax("");
+    const clearedFilters = {
+      divisionQuery: "",
+      totalPriceQuery: "",
+      pricePerMonthQuery: "",
+      vendorNameQuery: "",
+      dateOfIssueQuery: "",
+      dateOfExpiredQuery: "",
+      statusQuery: "",
+      priceMin: "",
+      priceMax: "",
+      deviceQuery: "",
+      serialQuery: "",
+      contractQuery: "",
+      brandQuery: "",
+      modelQuery: "",
+      typeQuery: "",
+      locationQuery: "",
+    };
+    setFilters(clearedFilters);
+    setTempFilters(clearedFilters);
   };
 
   const handleApplyFilters = () => {
-    setDeviceQuery(tempDeviceQuery);
-    setSerialQuery(tempSerialQuery);
-    setContractQuery(tempContractQuery);
-    setDivisionQuery(tempDivisionQuery);
-    setTotalPriceQuery(tempTotalPriceQuery);
-    setPricePerMonthQuery(tempPricePerMonthQuery);
-    setVendorNameQuery(tempVendorNameQuery);
-    setDateOfIssueQuery(tempDateOfIssueQuery);
-    setDateOfExpiredQuery(tempDateOfExpiredQuery);
-    setStatusQuery(tempStatusQuery);
-    setPriceMin(tempPriceMin);
-    setPriceMax(tempPriceMax);
-    setShowFilterModal(false);
+    setFilters(tempFilters); // Apply temporary filters
+    setShowFilterModal(false); // Close the modal
   };
 
   const fetchData = useCallback(() => {
@@ -133,8 +120,8 @@ export default function Main() {
           : true;
 
       const matchesPriceRange = (price) => {
-        const min = priceMin ? parseFloat(priceMin) : -Infinity;
-        const max = priceMax ? parseFloat(priceMax) : Infinity;
+        const min = filters.priceMin ? parseFloat(filters.priceMin) : -Infinity;
+        const max = filters.priceMax ? parseFloat(filters.priceMax) : Infinity;
         return price >= min && price <= max;
       };
 
@@ -144,43 +131,53 @@ export default function Main() {
           matchesQuery(row.serialNumber, searchQuery) ||
           matchesQuery(row.contractNo, searchQuery) ||
           matchesQuery(row.vendorName, searchQuery)) &&
-        (!deviceQuery || matchesQuery(row.DeviceName, deviceQuery)) &&
-        (!serialQuery || matchesQuery(row.serialNumber, serialQuery)) &&
-        (!contractQuery || matchesQuery(row.contractNo, contractQuery)) &&
-        (!divisionQuery || matchesQuery(row.divisionName, divisionQuery)) &&
-        (!totalPriceQuery || row.price?.toString().includes(totalPriceQuery)) &&
-        (!pricePerMonthQuery ||
-          row.monthly_charge?.toString().includes(pricePerMonthQuery)) &&
-        (!vendorNameQuery || matchesQuery(row.vendorName, vendorNameQuery)) &&
-        matchesDate(row.startDate, dateOfIssueQuery) &&
-        matchesDate(row.endDate, dateOfExpiredQuery) &&
-        (!statusQuery ||
-          row.expireStatusName?.toLowerCase() === statusQuery.toLowerCase()) &&
-        matchesPriceRange(parseFloat(row.price))
+        (!filters.deviceQuery ||
+          matchesQuery(row.DeviceName, filters.deviceQuery)) &&
+        (!filters.serialQuery ||
+          matchesQuery(row.serialNumber, filters.serialQuery)) &&
+        (!filters.contractQuery ||
+          matchesQuery(row.contractNo, filters.contractQuery)) &&
+        (!filters.divisionQuery ||
+          matchesQuery(row.divisionName, filters.divisionQuery)) &&
+        (!filters.totalPriceQuery ||
+          row.price?.toString().includes(filters.totalPriceQuery)) &&
+        (!filters.pricePerMonthQuery ||
+          row.monthly_charge
+            ?.toString()
+            .includes(filters.pricePerMonthQuery)) &&
+        (!filters.vendorNameQuery ||
+          matchesQuery(row.vendorName, filters.vendorNameQuery)) &&
+        matchesDate(row.startDate, filters.dateOfIssueQuery) &&
+        matchesDate(row.endDate, filters.dateOfExpiredQuery) &&
+        (!filters.statusQuery ||
+          row.expireStatusName?.toLowerCase() ===
+            filters.statusQuery.toLowerCase()) &&
+        matchesPriceRange(parseFloat(row.price)) &&
+        (!filters.brandQuery || matchesQuery(row.Brand, filters.brandQuery)) &&
+        (!filters.modelQuery || matchesQuery(row.Model, filters.modelQuery)) &&
+        (!filters.typeQuery || matchesQuery(row.Type, filters.typeQuery)) &&
+        (!filters.locationQuery ||
+          matchesQuery(row.Location, filters.locationQuery))
       );
     });
-  }, [
-    data,
-    activeDivision,
-    searchQuery,
-    user.permissionCode,
-    priceMin,
-    priceMax,
-    divisionQuery,
-    totalPriceQuery,
-    pricePerMonthQuery,
-    vendorNameQuery,
-    dateOfIssueQuery,
-    dateOfExpiredQuery,
-    statusQuery,
-    deviceQuery,
-    serialQuery,
-    contractQuery,
-  ]);
+  }, [data, activeDivision, searchQuery, user.permissionCode, filters]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    const fetchTypeList = async () => {
+      try {
+        const response = await axios.get(url + "service/typelist");
+        setTypeList(response.data);
+      } catch (error) {
+        console.error("Error fetching type list:", error);
+      }
+    };
+
+    fetchTypeList();
+  }, [url]);
 
   const filteredData = useMemo(() => filterData(), [filterData]);
 
@@ -210,14 +207,18 @@ export default function Main() {
   };
 
   const columns = [
-    { field: "DeviceName", headerName: "Device Name", flex: 1, minWidth: 120 },
+    { field: "DeviceName", headerName: "Description", flex: 1, minWidth: 170 },
     { field: "serialNumber", headerName: "S/N", flex: 1, minWidth: 120 },
     {
       field: "contractNo",
-      headerName: "Contract Number",
+      headerName: "Contract No.",
       flex: 1,
       minWidth: 120,
     },
+    { field: "Brand", headerName: "Brand", flex: 1, minWidth: 120 },
+    { field: "Model", headerName: "Model", flex: 1, minWidth: 120 },
+    { field: "Type", headerName: "Type", flex: 1, minWidth: 120 },
+    { field: "Location", headerName: "Location", flex: 1, minWidth: 120 },
     { field: "divisionName", headerName: "Division", flex: 1, minWidth: 120 },
     { field: "price", headerName: "Total Price", flex: 1, minWidth: 120 },
     {
@@ -271,9 +272,8 @@ export default function Main() {
   });
 
   return (
-    <div className="main-container responsive-layout">
+    <div className="container p-4">
       <h2>Service</h2>
-
       <div className="row mt-3">
         <div className="col-md-4"></div>
         <div className="col-md-4">
@@ -339,104 +339,211 @@ export default function Main() {
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <div className="row px-3 mt-3">
-              <div className="col-md-6 mb-3">
+            <Row className="px-3 mt-3">
+              <Col md={6} className="mb-3">
                 <FormControl
-                  placeholder="Device Name"
-                  value={tempDeviceQuery}
-                  onChange={(e) => setTempDeviceQuery(e.target.value)}
+                  placeholder="Description"
+                  value={tempFilters.deviceQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      deviceQuery: e.target.value,
+                    })
+                  }
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+
+              <Col md={6} className="mb-3" />
+
+              <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="S/N"
-                  value={tempSerialQuery}
-                  onChange={(e) => setTempSerialQuery(e.target.value)}
+                  value={tempFilters.serialQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      serialQuery: e.target.value,
+                    })
+                  }
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+
+              <Col md={6} className="mb-3">
                 <FormControl
-                  placeholder="Contract Number"
-                  value={tempContractQuery}
-                  onChange={(e) => setTempContractQuery(e.target.value)}
+                  placeholder="Contract No."
+                  value={tempFilters.contractQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      contractQuery: e.target.value,
+                    })
+                  }
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+
+              <Col md={6} className="mb-3">
                 <FormControl
-                  placeholder="Division"
-                  value={tempDivisionQuery}
-                  onChange={(e) => setTempDivisionQuery(e.target.value)}
+                  placeholder="Brand"
+                  value={tempFilters.brandQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      brandQuery: e.target.value,
+                    })
+                  }
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+
+              <Col md={6} className="mb-3">
+                <FormControl
+                  placeholder="Model"
+                  value={tempFilters.modelQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      modelQuery: e.target.value,
+                    })
+                  }
+                />
+              </Col>
+
+              <Col md={6} className="mb-3">
+                <Form.Select
+                  value={tempFilters.typeQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      typeQuery: e.target.value,
+                    })
+                  }>
+                  <option value="">Select Type</option>
+                  {typeList.map((type) => (
+                    <option key={type.TypeId} value={type.TypeName}>
+                      {type.TypeName}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+
+              <Col md={6} className="mb-3">
+                <FormControl
+                  placeholder="Location"
+                  value={tempFilters.locationQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      locationQuery: e.target.value,
+                    })
+                  }
+                />
+              </Col>
+
+              <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="Total Price"
-                  value={tempTotalPriceQuery}
-                  onChange={(e) => setTempTotalPriceQuery(e.target.value)}
+                  value={tempFilters.totalPriceQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      totalPriceQuery: e.target.value,
+                    })
+                  }
                 />
-              </div>
-              <div className="col-md-3 mb-3">
+              </Col>
+
+              <Col md={3} className="mb-3">
                 <FormControl
                   type="number"
                   placeholder="Min Price"
-                  value={tempPriceMin}
-                  onChange={(e) => setTempPriceMin(e.target.value)}
+                  value={tempFilters.priceMin}
+                  onChange={(e) =>
+                    setTempFilters({ ...tempFilters, priceMin: e.target.value })
+                  }
                 />
-              </div>
-              <div className="col-md-3 mb-3">
+              </Col>
+
+              <Col md={3} className="mb-3">
                 <FormControl
                   type="number"
                   placeholder="Max Price"
-                  value={tempPriceMax}
-                  onChange={(e) => setTempPriceMax(e.target.value)}
+                  value={tempFilters.priceMax}
+                  onChange={(e) =>
+                    setTempFilters({ ...tempFilters, priceMax: e.target.value })
+                  }
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+
+              <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="Vendor"
-                  value={tempVendorNameQuery}
-                  onChange={(e) => setTempVendorNameQuery(e.target.value)}
+                  value={tempFilters.vendorNameQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      vendorNameQuery: e.target.value,
+                    })
+                  }
                 />
-              </div>
-              <div className="col-md-6 mb-3">
+              </Col>
+
+              <Col md={6} className="mb-3">
                 <Form.Select
-                  value={tempStatusQuery}
-                  onChange={(e) => setTempStatusQuery(e.target.value)}>
+                  value={tempFilters.statusQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      statusQuery: e.target.value,
+                    })
+                  }>
                   {expireStatusOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
                 </Form.Select>
-              </div>
-              <div className="col-md-6 mb-3">
-                <FormControl
-                  type="date"
-                  placeholder="Date of Issue"
-                  value={tempDateOfIssueQuery}
-                  onChange={(e) => setTempDateOfIssueQuery(e.target.value)}
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <FormControl
-                  type="date"
-                  placeholder="Date of Expired"
-                  value={tempDateOfExpiredQuery}
-                  onChange={(e) => setTempDateOfExpiredQuery(e.target.value)}
-                />
-              </div>
-            </div>
+              </Col>
+
+              <Col md={6} className="mb-3">
+                <FormGroup>
+                  <FormLabel>Date of Issue</FormLabel>
+                  <FormControl
+                    type="date"
+                    placeholder="Date of Issue"
+                    value={tempFilters.dateOfIssueQuery}
+                    onChange={(e) =>
+                      setTempFilters({
+                        ...tempFilters,
+                        dateOfIssueQuery: e.target.value,
+                      })
+                    }
+                  />
+                </FormGroup>
+              </Col>
+
+              <Col md={6} className="mb-3">
+                <FormGroup>
+                  <FormLabel>Date of Expired</FormLabel>
+                  <FormControl
+                    type="date"
+                    placeholder="Date of Expired"
+                    value={tempFilters.dateOfExpiredQuery}
+                    onChange={(e) =>
+                      setTempFilters({
+                        ...tempFilters,
+                        dateOfExpiredQuery: e.target.value,
+                      })
+                    }
+                  />
+                </FormGroup>
+              </Col>
+            </Row>
           </Form>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="primary" onClick={handleApplyFilters}>
             Apply
           </Button>
-          <Button
-            variant="outline-danger"
-            onClick={() => {
-              handleClearFilters();
-            }}>
+          <Button variant="outline-danger" onClick={handleClearFilters}>
             Clear
           </Button>
           <Button variant="secondary" onClick={() => setShowFilterModal(false)}>

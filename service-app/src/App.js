@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import Setting from "./components/setting";
 import SettingDivision from "./components/settingDivision";
 import SettingPermission from "./components/settingPermission";
+import SettingType from "./components/settingType";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useUser();
@@ -131,6 +132,14 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <SettingPermission />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settingType"
+                element={
+                  <ProtectedRoute>
+                    <SettingType />
                   </ProtectedRoute>
                 }
               />

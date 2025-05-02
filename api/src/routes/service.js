@@ -19,14 +19,16 @@ const storage = multer.diskStorage({
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      alert("File size exceeds the maximum limit of 5 MB.");
-      return;
+      return cb(new Error("File size exceeds the maximum limit of 5 MB."));
     }
 
     const fileType = file.type; // MIME type
     if (fileType === "application/pdf") {
       // Handle PDF files
-    } else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    } else if (
+      fileType ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
       // Handle Word documents
     }
 
@@ -110,6 +112,10 @@ router.get("/", async (req, res) => {
       service.DeviceName,
       service.serialNumber,
       service.contractNo,
+      service.Brand,
+      service.Model,
+      service.Type,
+      service.Location,
       service.price,
       service.startDate, 
       service.endDate, 
@@ -123,7 +129,8 @@ router.get("/", async (req, res) => {
     LEFT JOIN ServiceDetail AS sd ON service.serviceID = sd.serviceID
     GROUP BY 
       service.serviceID, service.DeviceName, service.serialNumber, 
-      service.contractNo, service.price, service.startDate, 
+      service.contractNo, service.Brand,
+      service.Model, service.Type, service.Location, service.price, service.startDate, 
       service.endDate, service.vendorName, service.vendorPhone, 
       division.divisionID,division.divisionName
     `;
@@ -170,6 +177,10 @@ router.post("/insertdata", async (req, res) => {
       vendorPhone,
       serialNumber,
       contractNo,
+      Brand,
+      Model,
+      Type,
+      Location,
     } = req.body;
 
     if (!DeviceName || !divisionID || !serialNumber || !contractNo) {
@@ -192,11 +203,15 @@ router.post("/insertdata", async (req, res) => {
     request.input("serialNumber", db.sql.VarChar, serialNumber);
     request.input("contractNo", db.sql.VarChar, contractNo);
     request.input("totalMonth", db.sql.Int, months);
+    request.input("Brand", db.sql.VarChar, Brand);
+    request.input("Model", db.sql.VarChar, Model);
+    request.input("Type", db.sql.VarChar, Type);
+    request.input("Location", db.sql.VarChar, Location);
 
     // Insert service data into the Service table
     const result = await request.query(`
-      INSERT INTO Service (DeviceName, divisionID, price, startDate, endDate, vendorName, vendorPhone, serialNumber, contractNo, totalMonth)
-      VALUES (@DeviceName, @divisionID, @price, @startDate, @endDate, @vendorName, @vendorPhone, @serialNumber, @contractNo, @totalMonth);
+      INSERT INTO Service (DeviceName, divisionID, price, startDate, endDate, vendorName, vendorPhone, serialNumber, contractNo, totalMonth, Brand, Model, Type, Location)
+      VALUES (@DeviceName, @divisionID, @price, @startDate, @endDate, @vendorName, @vendorPhone, @serialNumber, @contractNo, @totalMonth, @Brand, @Model, @Type, @Location)
       SELECT SCOPE_IDENTITY() AS serviceID;
     `);
 
@@ -337,6 +352,10 @@ router.put("/updatedata/:serviceID", async (req, res) => {
       vendorPhone,
       serialNumber,
       contractNo,
+      Brand,
+      Model,
+      Type,
+      Location,
     } = req.body; // Get the updated data from the request body
 
     // Ensure required fields are provided
@@ -360,9 +379,13 @@ router.put("/updatedata/:serviceID", async (req, res) => {
     request.input("startDate", db.sql.Date, startDate);
     request.input("endDate", db.sql.Date, endDate);
     request.input("vendorName", db.sql.VarChar, vendorName);
-    request.input("vendorPhone", db.sql.VarChar, vendorPhone);
+    request.input("vendorPhone", db.sql.VarChar, vendorPhone || null); // Optional
     request.input("serialNumber", db.sql.VarChar, serialNumber);
     request.input("contractNo", db.sql.VarChar, contractNo);
+    request.input("Brand", db.sql.VarChar, Brand || null); // Optional
+    request.input("Model", db.sql.VarChar, Model || null); // Optional
+    request.input("Type", db.sql.VarChar, Type);
+    request.input("Location", db.sql.VarChar, Location || null); // Optional
     request.input("serviceID", db.sql.Int, serviceID); // Pass the serviceID for identifying the record
 
     // Construct the UPDATE query
@@ -377,7 +400,11 @@ router.put("/updatedata/:serviceID", async (req, res) => {
         vendorName = @vendorName,
         vendorPhone = @vendorPhone,
         serialNumber = @serialNumber,
-        contractNo = @contractNo
+        contractNo = @contractNo,
+        Brand = @Brand,
+        Model = @Model,
+        Type = @Type,
+        Location = @Location
       WHERE serviceID = @serviceID;
     `;
 
@@ -392,6 +419,39 @@ router.put("/updatedata/:serviceID", async (req, res) => {
   } catch (error) {
     console.error("Error updating service:", error);
     res.status(500).json({ error: "Database error" });
+  }
+});
+
+router.get("/typelist", async (req, res) => {
+  try {
+    const query = `SELECT TypeId, TypeName FROM ServiceType ORDER BY TypeId ASC`;
+    const data = await db.connectAndQuery(query);
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching type list:", error);
+    res.status(500).send("Server Error");
+  }
+});
+
+router.post("/addtype", async (req, res) => {
+  try {
+    const { typeName } = req.body;
+
+    if (!typeName || !typeName.trim()) {
+      return res.status(400).json({ error: "Type Name cannot be empty." });
+    }
+
+    const query = `INSERT INTO ServiceType (TypeName) VALUES (@typeName)`;
+    const pool = await db.connectDB();
+    const request = pool.request();
+    request.input("typeName", db.sql.VarChar, typeName.trim());
+
+    await request.query(query);
+
+    res.status(201).json({ message: "Type added successfully." });
+  } catch (error) {
+    console.error("Error adding type:", error);
+    res.status(500).send("Server Error");
   }
 });
 

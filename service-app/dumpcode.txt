@@ -1,0 +1,161 @@
+<Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+  <Modal.Header closeButton>
+    <Modal.Title>Edit Service</Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    {editData && (
+      <Form>
+        {/* Other fields remain unchanged */}
+        <Row>
+          <Col md={6}>
+            <Form.Group controlId="formDeviceName">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                type="text"
+                value={editData.DeviceName}
+                onChange={(e) =>
+                  setEditData({ ...editData, DeviceName: e.target.value })
+                }
+              />
+            </Form.Group>
+          </Col>
+          <Col md={6}>
+            <Form.Group controlId="divisionName">
+              <Form.Label>Division</Form.Label>
+              <Form.Control
+                type="text"
+                value={editData.divisionName}
+                onChange={(e) =>
+                  setEditData({ ...editData, divisionName: e.target.value })
+                }
+              />
+            </Form.Group>
+          </Col>
+        </Row>
+
+        {/* File Upload Section */}
+        <Row className="mt-3">
+          <Col md={4}>
+            <Form.Control type="file" onChange={handleFileChange} />
+          </Col>
+          <Col md={4}>
+            <Form.Select
+              value={fileType}
+              onChange={(e) => setFileType(e.target.value)}
+            >
+              <option value="">---Select Type---</option>
+              <option value="contract">Contract</option>
+              <option value="pr">PR</option>
+              <option value="po">PO</option>
+            </Form.Select>
+          </Col>
+          <Col md={4}>
+            <Button
+              variant="success"
+              onClick={handleUpload}
+              type="button"
+              disabled={!selectedFile || !fileType}
+            >
+              Upload
+            </Button>
+          </Col>
+        </Row>
+
+        {/* Document Tabs Section */}
+        <Row className="mt-4">
+          <Col>
+            <Tabs
+              defaultActiveKey="pr"
+              id="document-tabs"
+              className="mb-3"
+              variant="pills"
+            >
+              <Tab
+                eventKey="pr"
+                title="PR"
+                disabled={prDocs.length === 0}
+                className="border-top border-bottom border-secondary border-2"
+              >
+                {prDocs.length > 0 ? (
+                  <ul>
+                    {prDocs.map((doc, index) => (
+                      <li key={index}>
+                        <a
+                          href={doc.DocPath}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {doc.DocName}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No PR documents available.</p>
+                )}
+              </Tab>
+
+              <Tab
+                eventKey="po"
+                title="PO"
+                disabled={poDocs.length === 0}
+                className="border-top border-bottom border-secondary border-2"
+              >
+                {poDocs.length > 0 ? (
+                  <ul>
+                    {poDocs.map((doc, index) => (
+                      <li key={index}>
+                        <a
+                          href={doc.DocPath}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {doc.DocName}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No PO documents available.</p>
+                )}
+              </Tab>
+
+              <Tab
+                eventKey="contract"
+                title="Contract"
+                disabled={contractDocs.length === 0}
+                className="border-top border-bottom border-secondary border-2"
+              >
+                {contractDocs.length > 0 ? (
+                  <ul>
+                    {contractDocs.map((doc, index) => (
+                      <li key={index}>
+                        <a
+                          href={doc.DocPath}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {doc.DocName}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No Contract documents available.</p>
+                )}
+              </Tab>
+            </Tabs>
+          </Col>
+        </Row>
+      </Form>
+    )}
+  </Modal.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+      Close
+    </Button>
+    <Button variant="success" onClick={handleSaveChanges}>
+      Save Changes
+    </Button>
+  </Modal.Footer>
+</Modal>

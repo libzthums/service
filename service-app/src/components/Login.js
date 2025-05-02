@@ -1,6 +1,6 @@
 import { useUser } from "../context/userContext";
 import axios from "axios";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { UrlContext } from "../router/route";
 import { useNavigate } from "react-router-dom";
 
@@ -11,6 +11,15 @@ const Login = () => {
 
   const [userName, setUserName] = useState("");
   const [userPassword, setUserPassword] = useState("");
+
+  useEffect(() => {
+    // Check if the page has already been refreshed
+    const hasRefreshed = sessionStorage.getItem("hasRefreshed");
+    if (!hasRefreshed) {
+      sessionStorage.setItem("hasRefreshed", "true");
+      window.location.reload();
+    }
+  }, []);
 
   const handleLogin = async () => {
     try {
@@ -26,6 +35,7 @@ const Login = () => {
       navigate("/");
     } catch (err) {
       alert("Login failed");
+      console.error(err);
     }
   };
 
@@ -37,10 +47,7 @@ const Login = () => {
         "justify-content-center",
         "align-items-center",
         "min-vh-100",
-        "main-container",
-        "responsive-layout",
-      ].join(" ")}
-    >
+      ].join(" ")}>
       <div className="card shadow-lg p-4" style={{ width: "300px" }}>
         <h2 className="text-center mb-4">Login</h2>
         <div className="form-group">

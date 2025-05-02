@@ -20,20 +20,34 @@ export default function InsertData({ onSuccess }) {
     vendorPhone: "",
     serialNumber: "",
     contractNo: "",
+    Brand: "",
+    Model: "",
+    Type: "",
+    Location: "",
   });
 
   const [division, setDivisions] = useState([]);
+  const [typeList, setTypeList] = useState([]); // State for Type dropdown options
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileType, setFileType] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
   useEffect(() => {
+    // Fetch divisions
     axios
       .get(url + "service/division")
       .then((response) => {
         setDivisions(response.data);
       })
       .catch((error) => console.error("Error fetching divisions:", error));
+
+    // Fetch types
+    axios
+      .get(url + "service/typeList")
+      .then((response) => {
+        setTypeList(response.data);
+      })
+      .catch((error) => console.error("Error fetching types:", error));
   }, [url]);
 
   useEffect(() => {
@@ -82,6 +96,10 @@ export default function InsertData({ onSuccess }) {
         vendorPhone: "",
         serialNumber: "",
         contractNo: "",
+        Brand: "",
+        Model: "",
+        Type: "",
+        Location: "",
       });
       setUploadedFiles([]);
       setSelectedFile(null);
@@ -104,6 +122,10 @@ export default function InsertData({ onSuccess }) {
       vendorPhone: "",
       serialNumber: "",
       contractNo: "",
+      Brand: "",
+      Model: "",
+      Type: "",
+      Location: "",
     });
     setUploadedFiles([]);
     setSelectedFile(null);
@@ -120,6 +142,20 @@ export default function InsertData({ onSuccess }) {
       return;
     }
 
+    // Validate file size (e.g., max 5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      alert("File size exceeds the maximum limit of 5MB.");
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ["contract", "pr", "po"];
+    if (!allowedTypes.includes(fileType)) {
+      alert("Invalid file type selected.");
+      return;
+    }
+
     setUploadedFiles((prev) => [
       ...prev,
       { file: selectedFile, type: fileType },
@@ -133,22 +169,23 @@ export default function InsertData({ onSuccess }) {
   };
 
   return (
-    <div className="main-container responsive-layout">
+    <div className="container p-4">
       <div className="row align-items-center mt-4 mb-4">
         <div className="col-auto">
           <Button variant="secondary" onClick={() => navigate(-1)}>
             <i className="fas fa-arrow-left"></i> Back
           </Button>
         </div>
-        <div className="col">
+        <div className="col-auto">
           <h2>Manual Upload</h2>
         </div>
       </div>
       <form onSubmit={handleSubmit}>
         <div className="row">
-          {/* Device Name */}
           <div className="col-md-6 mb-3">
-            <label>Device Name</label>
+            <label>
+              Description <span style={{ color: "red" }}>*</span>
+            </label>
             <input
               type="text"
               className="form-control"
@@ -160,23 +197,44 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          {/* Serial Number */}
           <div className="col-md-6 mb-3">
-            <label>Serial Number</label>
+            <label>Division</label>
+            <select
+              className="form-control"
+              name="divisionID"
+              value={formData.divisionID}
+              onChange={handleChange}
+              required
+              disabled={
+                !(
+                  user?.permission === "Admin" || user?.permission === "Manager"
+                )
+              }>
+              <option value="">Select Division</option>
+              {division.map((d) => (
+                <option key={d.divisionID} value={d.divisionID}>
+                  {d.divisionName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-md-6 mb-3">
+            <label>S/N</label>
             <input
               type="text"
               className="form-control"
               name="serialNumber"
               value={formData.serialNumber}
               onChange={handleChange}
-              required
               autoComplete="off"
             />
           </div>
 
-          {/* Contract Number */}
           <div className="col-md-6 mb-3">
-            <label>Contract Number</label>
+            <label>
+              Contract No. <span style={{ color: "red" }}>*</span>
+            </label>
             <input
               type="text"
               className="form-control"
@@ -188,28 +246,65 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          {/* Division Selection */}
           <div className="col-md-6 mb-3">
-            <label>Division</label>
+            <label>Brand</label>
+            <input
+              type="text"
+              className="form-control"
+              name="Brand"
+              value={formData.Brand}
+              onChange={handleChange}
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="col-md-6 mb-3">
+            <label>Model</label>
+            <input
+              type="text"
+              className="form-control"
+              name="Model"
+              value={formData.Model}
+              onChange={handleChange}
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="col-md-6 mb-3">
+            <label>
+              Type <span style={{ color: "red" }}>*</span>
+            </label>
             <select
               className="form-control"
-              name="divisionID"
-              value={formData.divisionID}
+              name="Type"
+              value={formData.Type}
               onChange={handleChange}
-              required
-              disabled={!(user?.permission === "Admin")}>
-              <option value="">Select Division</option>
-              {division.map((d) => (
-                <option key={d.divisionID} value={d.divisionID}>
-                  {d.divisionName}
+              required>
+              <option value="">Select Type</option>
+              {typeList.map((type) => (
+                <option key={type.TypeId} value={type.TypeName}>
+                  {type.TypeName}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Price */}
           <div className="col-md-6 mb-3">
-            <label>Price</label>
+            <label>Location</label>
+            <input
+              type="text"
+              className="form-control"
+              name="Location"
+              value={formData.Location}
+              onChange={handleChange}
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="col-md-6 mb-3">
+            <label>
+              Price <span style={{ color: "red" }}>*</span>
+            </label>
             <input
               type="number"
               className="form-control"
@@ -221,9 +316,10 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          {/* Vendor Name */}
           <div className="col-md-6 mb-3">
-            <label>Vendor Name</label>
+            <label>
+              Vendor Name <span style={{ color: "red" }}>*</span>
+            </label>
             <input
               type="text"
               className="form-control"
@@ -231,12 +327,14 @@ export default function InsertData({ onSuccess }) {
               value={formData.vendorName}
               onChange={handleChange}
               autoComplete="off"
+              required
             />
           </div>
 
-          {/* Start Date */}
           <div className="col-md-6 mb-3">
-            <label>Issue Date</label>
+            <label>
+              Issue Date <span style={{ color: "red" }}>*</span>
+            </label>
             <input
               type="date"
               className="form-control"
@@ -244,12 +342,14 @@ export default function InsertData({ onSuccess }) {
               value={formData.startDate}
               onChange={handleChange}
               autoComplete="off"
+              required
             />
           </div>
 
-          {/* End Date */}
           <div className="col-md-6 mb-3">
-            <label>Expired Date</label>
+            <label>
+              Expired Date <span style={{ color: "red" }}>*</span>
+            </label>
             <input
               type="date"
               className="form-control"
@@ -257,11 +357,11 @@ export default function InsertData({ onSuccess }) {
               value={formData.endDate}
               onChange={handleChange}
               autoComplete="off"
+              required
             />
           </div>
         </div>
 
-        {/* File Upload Section */}
         <div className="row mt-3">
           <div className="col-md-4">
             <input
@@ -292,7 +392,6 @@ export default function InsertData({ onSuccess }) {
           </div>
         </div>
 
-        {/* File List */}
         {uploadedFiles.length > 0 && (
           <div className="mt-3">
             <table className="table table-bordered">
@@ -322,7 +421,6 @@ export default function InsertData({ onSuccess }) {
           </div>
         )}
 
-        {/* Buttons */}
         <div className="form-group mt-3 text-center">
           <button type="submit" className="btn btn-primary">
             Save
