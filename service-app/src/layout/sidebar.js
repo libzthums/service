@@ -51,6 +51,7 @@ when the component mounts or when the `user` or `activeDivision` state changes. 
           textDecoration: "none",
           display: "block",
           fontWeight: "bold",
+          padding: "12px",
         }}>
         <span className="brand-text text-brand">Service Charge</span>
       </Link>

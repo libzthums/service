@@ -133,133 +133,74 @@ export default function Reissue() {
     const isAdminOrManager =
       user.permissionCode === 2 || user.permissionCode === 3;
 
-    let result = data.filter((item) => {
+    const matchesQuery = (field, query) =>
+      field?.toLowerCase().includes(query.toLowerCase());
+
+    const matchesDate = (field, query) =>
+      query && !isNaN(new Date(query).getTime())
+        ? field?.includes(query)
+        : true;
+
+    const matchesPriceRange = (price) => {
+      const min = filters.priceMin ? parseFloat(filters.priceMin) : -Infinity;
+      const max = filters.priceMax ? parseFloat(filters.priceMax) : Infinity;
+      return price >= min && price <= max;
+    };
+
+    const matchesStatus = (statusName) => {
+      const statusMap = {
+        1: ["issued", "expire in 3 months"],
+        2: ["just expired", "expired"],
+      };
+      const validStatuses = statusMap[status] || [];
+      return validStatuses.includes(statusName?.toLowerCase());
+    };
+
+    const result = data.filter((item) => {
       const divisionMatch =
         isAdminOrManager || item.divisionID === activeDivision.id;
 
-      const statusMatch =
-        (status === 1 &&
-          ["issued", "expire in 3 months"].includes(
-            item.expireStatusName?.toLowerCase()
-          )) ||
-        (status === 2 &&
-          ["just expired", "expired"].includes(
-            item.expireStatusName?.toLowerCase()
-          ));
+      const statusMatch = matchesStatus(item.expireStatusName);
 
       const searchMatch =
         !searchQuery ||
-        item.DeviceName?.toLowerCase().includes(lowerSearch) ||
-        item.serialNumber?.toLowerCase().includes(lowerSearch) ||
-        item.contractNo?.toLowerCase().includes(lowerSearch) ||
-        item.vendorName?.toLowerCase().includes(lowerSearch) ||
-        item.Type?.toLowerCase().includes(lowerSearch);
+        matchesQuery(item.DeviceName, lowerSearch) ||
+        matchesQuery(item.serialNumber, lowerSearch) ||
+        matchesQuery(item.contractNo, lowerSearch) ||
+        matchesQuery(item.vendorName, lowerSearch) ||
+        matchesQuery(item.Type, lowerSearch);
 
-      return divisionMatch && statusMatch && searchMatch;
+      const filterConditions = [
+        !filters.deviceQuery ||
+          matchesQuery(item.DeviceName, filters.deviceQuery),
+        !filters.serialQuery ||
+          matchesQuery(item.serialNumber, filters.serialQuery),
+        !filters.contractQuery ||
+          matchesQuery(item.contractNo, filters.contractQuery),
+        !filters.divisionQuery ||
+          matchesQuery(item.divisionName, filters.divisionQuery),
+        !filters.totalPriceQuery ||
+          item.price?.toString().includes(filters.totalPriceQuery),
+        !filters.pricePerMonthQuery ||
+          item.monthly_charge?.toString().includes(filters.pricePerMonthQuery),
+        !filters.vendorNameQuery ||
+          matchesQuery(item.vendorName, filters.vendorNameQuery),
+        matchesDate(item.startDate, filters.dateOfIssueQuery),
+        matchesDate(item.endDate, filters.dateOfExpiredQuery),
+        matchesPriceRange(parseFloat(item.monthly_charge)),
+        !filters.Brand || matchesQuery(item.Brand, filters.Brand),
+        !filters.Model || matchesQuery(item.Model, filters.Model),
+        !filters.Type || matchesQuery(item.Type, filters.Type),
+        !filters.Location || matchesQuery(item.Location, filters.Location),
+      ];
+
+      return (
+        divisionMatch &&
+        statusMatch &&
+        searchMatch &&
+        filterConditions.every(Boolean)
+      );
     });
-
-    if (filters.deviceQuery) {
-      result = result.filter((row) =>
-        row.DeviceName?.toLowerCase().includes(
-          filters.deviceQuery.toLowerCase()
-        )
-      );
-    }
-
-    if (filters.serialQuery) {
-      result = result.filter((row) =>
-        row.serialNumber
-          ?.toLowerCase()
-          .includes(filters.serialQuery.toLowerCase())
-      );
-    }
-
-    if (filters.contractQuery) {
-      result = result.filter((row) =>
-        row.contractNo
-          ?.toLowerCase()
-          .includes(filters.contractQuery.toLowerCase())
-      );
-    }
-
-    if (filters.divisionQuery) {
-      result = result.filter((row) =>
-        row.divisionName
-          ?.toLowerCase()
-          .includes(filters.divisionQuery.toLowerCase())
-      );
-    }
-
-    if (filters.totalPriceQuery) {
-      result = result.filter((row) =>
-        row.price?.toString().includes(filters.totalPriceQuery)
-      );
-    }
-
-    if (filters.pricePerMonthQuery) {
-      result = result.filter((row) =>
-        row.monthly_charge?.toString().includes(filters.pricePerMonthQuery)
-      );
-    }
-
-    if (filters.vendorNameQuery) {
-      result = result.filter((row) =>
-        row.vendorName
-          ?.toLowerCase()
-          .includes(filters.vendorNameQuery.toLowerCase())
-      );
-    }
-
-    if (
-      filters.dateOfIssueQuery &&
-      !isNaN(new Date(filters.dateOfIssueQuery).getTime())
-    ) {
-      result = result.filter((row) =>
-        row.startDate?.includes(filters.dateOfIssueQuery)
-      );
-    }
-
-    if (
-      filters.dateOfExpiredQuery &&
-      !isNaN(new Date(filters.dateOfExpiredQuery).getTime())
-    ) {
-      result = result.filter((row) =>
-        row.endDate?.includes(filters.dateOfExpiredQuery)
-      );
-    }
-
-    if (filters.priceMin || filters.priceMax) {
-      result = result.filter((row) => {
-        const price = parseFloat(row.monthly_charge);
-        const min = filters.priceMin ? parseFloat(filters.priceMin) : -Infinity;
-        const max = filters.priceMax ? parseFloat(filters.priceMax) : Infinity;
-        return price >= min && price <= max;
-      });
-    }
-
-    if (filters.Brand) {
-      result = result.filter((row) =>
-        row.Brand?.toLowerCase().includes(filters.Brand.toLowerCase())
-      );
-    }
-
-    if (filters.Model) {
-      result = result.filter((row) =>
-        row.Model?.toLowerCase().includes(filters.Model.toLowerCase())
-      );
-    }
-
-    if (filters.Type) {
-      result = result.filter((row) =>
-        row.Type?.toLowerCase().includes(filters.Type.toLowerCase())
-      );
-    }
-
-    if (filters.Location) {
-      result = result.filter((row) =>
-        row.Location?.toLowerCase().includes(filters.Location.toLowerCase())
-      );
-    }
 
     setFilteredData(result);
   }, [data, activeDivision, searchQuery, status, user.permissionCode, filters]);
@@ -279,15 +220,11 @@ export default function Reissue() {
 
   const fetchDocuments = async (serviceID) => {
     try {
-      const prResponse = await axios.get(`${url}docreader/pr/${serviceID}`);
-      const poResponse = await axios.get(`${url}docreader/po/${serviceID}`);
-      const contractResponse = await axios.get(
-        `${url}docreader/contract/${serviceID}`
-      );
+      const response = await axios.get(`${url}docreader/${serviceID}`);
 
-      setPrDocs(prResponse.data);
-      setPoDocs(poResponse.data);
-      setContractDocs(contractResponse.data);
+      setPrDocs(response.data.prDocs || []);
+      setPoDocs(response.data.poDocs || []);
+      setContractDocs(response.data.contractDocs || []);
     } catch (error) {
       console.error("Error fetching documents:", error);
     }
@@ -434,38 +371,45 @@ export default function Reissue() {
       headerName: "",
       flex: 1.5,
       minWidth: 250,
-      renderCell: (params) => (
-        <div className="d-flex flex-wrap gap-1">
-          <Link to={`/docDetail/${params.row?.serviceID}`}>
-            <Button size="sm" variant="info">
-              View
-            </Button>
-          </Link>
-          <Link>
-            <Button
-              size="sm"
-              variant="warning"
-              onClick={() => handleEditClick(params.row)}>
-              Edit
-            </Button>
-          </Link>
-          <Link>
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => handleReissueClick(params.row)}>
-              Reissue
-            </Button>
-          </Link>
-          {user.permission === "Admin" && (
-            <Link to="/#">
-              <Button size="sm" variant="danger">
-                Delete
+      renderCell: (params) => {
+        const isExpired =
+          params.row?.expireStatusName?.toLowerCase() === "just expired" ||
+          params.row?.expireStatusName?.toLowerCase() === "expired";
+
+        return (
+          <div className="d-flex flex-wrap gap-1">
+            <Link to={`/docDetail/${params.row?.serviceID}`}>
+              <Button size="sm" variant="info">
+                View
               </Button>
             </Link>
-          )}
-        </div>
-      ),
+            <Link>
+              <Button
+                size="sm"
+                variant="warning"
+                onClick={() => handleEditClick(params.row)}
+                disabled={isExpired}>
+                Edit
+              </Button>
+            </Link>
+            <Link>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => handleReissueClick(params.row)}>
+                Reissue
+              </Button>
+            </Link>
+            {user.permission === "Admin" && (
+              <Link to="/#">
+                <Button size="sm" variant="danger">
+                  Delete
+                </Button>
+              </Link>
+            )}
+          </div>
+        );
+      },
     },
   ];
 

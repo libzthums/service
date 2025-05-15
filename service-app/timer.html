@@ -1,45 +1,45 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Timer</title>
-</head>
-<body>
-  <h1 id="timer">00:00</h1>
-  <button onclick="startTimer()">Start</button>
-  <button onclick="stopTimer()">Stop</button>
-  <button onclick="resetTimer()">Reset</button>
+  <head>
+    <title>Timer</title>
+  </head>
+  <body>
+    <h1 id="timer">00:00</h1>
+    <button onclick="startTimer()">Start</button>
+    <button onclick="stopTimer()">Stop</button>
+    <button onclick="resetTimer()">Reset</button>
 
-  <script>
-    let seconds = 0;
-    let interval;
+    <script>
+      let seconds = 0;
+      let interval;
 
-    function updateDisplay() {
-      const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
-      const secs = String(seconds % 60).padStart(2, '0');
-      document.getElementById('timer').textContent = `${mins}:${secs}`;
-    }
-
-    function startTimer() {
-      if (!interval) {
-        interval = setInterval(() => {
-          seconds++;
-          updateDisplay();
-        }, 1000);
+      function updateDisplay() {
+        const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
+        const secs = String(seconds % 60).padStart(2, "0");
+        document.getElementById("timer").textContent = `${mins}:${secs}`;
       }
-    }
 
-    function stopTimer() {
-      clearInterval(interval);
-      interval = null;
-    }
+      function startTimer() {
+        if (!interval) {
+          interval = setInterval(() => {
+            seconds++;
+            updateDisplay();
+          }, 1000);
+        }
+      }
 
-    function resetTimer() {
-      stopTimer();
-      seconds = 0;
+      function stopTimer() {
+        clearInterval(interval);
+        interval = null;
+      }
+
+      function resetTimer() {
+        stopTimer();
+        seconds = 0;
+        updateDisplay();
+      }
+
       updateDisplay();
-    }
-
-    updateDisplay();
-  </script>
-</body>
+    </script>
+  </body>
 </html>

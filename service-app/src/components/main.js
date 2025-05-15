@@ -31,7 +31,6 @@ export default function Main() {
 
   const [showFilterModal, setShowFilterModal] = useState(false);
 
-  // Consolidate all filter states into a single object
   const [filters, setFilters] = useState({
     divisionQuery: "",
     totalPriceQuery: "",

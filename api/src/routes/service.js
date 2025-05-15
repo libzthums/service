@@ -257,15 +257,16 @@ router.post("/insertdata", async (req, res) => {
             VALUES (@serviceID, @chargeDate, @monthlyCharge);
           `);
         }
+
+        res.status(201).json({
+          message: "Service and service details added successfully",
+          serviceID, // Include the serviceID in the response
+        });
       } catch (queryError) {
         console.error("SQL Query Error:", queryError); // Log SQL errors
         return res.status(500).json({ error: "Database query failed" });
       }
     }
-
-    res.status(201).json({
-      message: "Service and service details added successfully",
-    });
   } catch (error) {
     console.error("Error inserting service:", error); // Log general errors
     res.status(500).json({ error: "Database error" });

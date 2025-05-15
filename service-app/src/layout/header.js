@@ -34,9 +34,9 @@ export default function Header() {
       {/* Left navbar links */}
       <ul className="navbar-nav">
         <li className="nav-item">
-          <button className="nav-link" data-widget="pushmenu" type="button">
+          {/* <button className="nav-link" data-widget="pushmenu" type="button">
             <i className="fa fa-bars"></i>
-          </button>
+          </button> */}
         </li>
       </ul>
 

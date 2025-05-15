@@ -77,7 +77,14 @@ export default function InsertData() {
     }
 
     try {
-      await axios.post(url + "service/insertdata", formData);
+      const response = await axios.post(url + "service/insertdata", formData);
+      const serviceID = response.data.serviceID; // Capture the serviceID from the response
+
+      if (!serviceID) {
+        alert("Failed to create service. Please try again.");
+        return;
+      }
+
       alert("Service added successfully!");
 
       if (uploadedFiles.length > 0) {
@@ -87,8 +94,15 @@ export default function InsertData() {
         });
         const fileTypes = uploadedFiles.map((file) => file.type);
         formDataFile.append("fileTypes", JSON.stringify(fileTypes));
+        formDataFile.append("serviceID", serviceID);
 
-        await axios.post(url + "service/insertdoc", formDataFile);
+        await axios.post(url + "service/insertdoc", formDataFile, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        alert("Files uploaded successfully!");
       }
 
       // Reset form
@@ -202,7 +216,9 @@ export default function InsertData() {
           </div>
 
           <div className="col-md-6 mb-1">
-            <label>Division</label>
+            <label>
+              Division <span style={{ color: "red" }}>*</span>
+            </label>
             <select
               className="form-control"
               name="divisionID"

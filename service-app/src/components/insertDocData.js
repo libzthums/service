@@ -118,7 +118,12 @@ export default function InsertDocData() {
         data: dataToUpload,
       });
 
-      const serviceID = serviceResponse.data.id;
+      const serviceID = serviceResponse.data.serviceID;
+
+      if (!serviceID) {
+        alert("Failed to create service. Please try again.");
+        return;
+      }
 
       if (multipleFiles.length > 0) {
         const fileTypes = multipleFiles.map((file) => {

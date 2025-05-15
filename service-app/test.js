@@ -1,4 +1,4 @@
-const frames = ['✶', '✸', '✹', '✺', '✹', '✸']; // Star spin pattern
+const frames = ['✶ ', '✸ ', '✹ ', '✺ ', '✹ ', '✸ ']; // Star spin pattern
 let i = 0;
 
 setInterval(() => {
