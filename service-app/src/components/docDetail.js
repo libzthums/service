@@ -18,15 +18,11 @@ export default function DocDetail() {
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
-        const prResponse = await axios.get(`${url}docreader/pr/${serviceID}`);
-        const poResponse = await axios.get(`${url}docreader/po/${serviceID}`);
-        const contractResponse = await axios.get(
-          `${url}docreader/contract/${serviceID}`
-        );
+        const response = await axios.get(`${url}docreader/${serviceID}`);
 
-        setPrDocs(prResponse.data);
-        setPoDocs(poResponse.data);
-        setContractDocs(contractResponse.data);
+        setPrDocs(response.data.prDocs || []);
+        setPoDocs(response.data.poDocs || []);
+        setContractDocs(response.data.contractDocs || []);
       } catch (error) {
         console.error("Error fetching documents:", error);
       }
@@ -47,13 +43,17 @@ export default function DocDetail() {
         id="uncontrolled-tab-example"
         className="mb-3"
         variant="pills">
-        <Tab eventKey="pr" title="PR" className="border-top border-bottom border-secondary border-2" disabled={prDocs.length === 0}>
+        <Tab
+          eventKey="pr"
+          title="PR"
+          className="border-top border-bottom border-secondary border-2"
+          disabled={prDocs.length === 0}>
           {prDocs.length > 0 ? (
             <ul>
               {prDocs.map((doc, index) => (
                 <li key={index}>
                   <a
-                    href={doc.DocPath}
+                    href={encodeURI(doc.DocPath)}
                     target="_blank"
                     rel="noopener noreferrer">
                     {doc.DocName}
@@ -66,13 +66,17 @@ export default function DocDetail() {
           )}
         </Tab>
 
-        <Tab eventKey="po" title="PO" className="border-top border-bottom border-secondary border-2" disabled={poDocs.length === 0}>
+        <Tab
+          eventKey="po"
+          title="PO"
+          className="border-top border-bottom border-secondary border-2"
+          disabled={poDocs.length === 0}>
           {poDocs.length > 0 ? (
             <ul>
               {poDocs.map((doc, index) => (
                 <li key={index}>
                   <a
-                    href={doc.DocPath}
+                    href={encodeURI(doc.DocPath)}
                     target="_blank"
                     rel="noopener noreferrer">
                     {doc.DocName}
@@ -95,7 +99,7 @@ export default function DocDetail() {
               {contractDocs.map((doc, index) => (
                 <li key={index}>
                   <a
-                    href={doc.DocPath}
+                    href={encodeURI(doc.DocPath)}
                     target="_blank"
                     rel="noopener noreferrer">
                     {doc.DocName}

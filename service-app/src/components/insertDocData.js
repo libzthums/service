@@ -22,118 +22,128 @@ export default function InsertDocData() {
   };
 
   // Parse Excel file and update previewData state
-  const handlePreview = () => {
+  const handlePreview = async () => {
     if (!singleFile) {
       alert("Please select an Excel file");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-      if (jsonData.length === 0) {
+    try {
+      const parsed = await parseExcelFile(singleFile);
+      if (parsed.length === 0) {
         alert("Excel file is empty or invalid");
         return;
       }
-
-      // Map Excel columns to required fields
-      const mappedData = jsonData.map((row) => {
-        const parseDate = (value) => {
-          if (!value) return "";
-          if (typeof value === "number") {
-            return new Date((value - 25569) * 86400 * 1000).toISOString().split("T")[0];
-          }
-          if (typeof value === "string" && !isNaN(Date.parse(value))) {
-            return new Date(value).toISOString().split("T")[0];
-          }
-          return "";
-        };
-
-        return {
-          DeviceName: row.Description || row["Description"] || "",
-          serialNumber: row.serialNumber || row["S/N"] || "",
-          contractNo: row.ContractNo || row["Contract No."] || "",
-          Brand: row.Brand || row["Brand"] || "",
-          Model: row.Model || row["Model"] || "",
-          Type: row.Type || row["Type"] || "",
-          Location: row.Location || row["Location"] || "",
-          divisionID: row.divisionID || row["Division ID"] || "",
-          price: parseFloat(
-            row.price ||
-              row.Price ||
-              row["Price"] ||
-              row["price"] ||
-              row["PRICE"] ||
-              "0"
-          ),
-          startDate: parseDate(row.startDate || row["Issue Date"]),
-          endDate: parseDate(row.endDate || row["Expire Date"]),
-          vendorName: row.vendorName || row["Vendor Name"] || "",
-        };
-      });
-
-      setPreviewData(mappedData);
-    };
-
-    reader.readAsArrayBuffer(singleFile);
+      setPreviewData(parsed);
+    } catch (error) {
+      alert("Failed to parse Excel file");
+      console.error(error);
+    }
   };
 
-  // Handle all submissions with a single button
+  const parseExcelFile = async (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+          const parseDate = (value) => {
+            if (!value) return "";
+            if (typeof value === "number") {
+              return new Date((value - 25569) * 86400 * 1000)
+                .toISOString()
+                .split("T")[0];
+            }
+            if (typeof value === "string" && !isNaN(Date.parse(value))) {
+              return new Date(value).toISOString().split("T")[0];
+            }
+            return "";
+          };
+
+          const mappedData = jsonData.map((row) => ({
+            DeviceName: row.Description || row["Description"] || "",
+            serialNumber: row.serialNumber || row["S/N"] || "",
+            contractNo: row.ContractNo || row["Contract No."] || "",
+            Brand: row.Brand || row["Brand"] || "",
+            Model: row.Model || row["Model"] || "",
+            Type: row.Type || row["Type"] || "",
+            Location: row.Location || row["Location"] || "",
+            divisionID: row.divisionID || row["Division ID"] || "",
+            price: parseFloat(
+              row.price ||
+                row.Price ||
+                row["Price"] ||
+                row["price"] ||
+                row["PRICE"] ||
+                "0"
+            ),
+            startDate: parseDate(row.startDate || row["Issue Date"]) || "",
+            endDate: parseDate(row.endDate || row["Expire Date"]) || "",
+            vendorName: row.vendorName || row["Vendor Name"] || "",
+          }));
+
+          resolve(mappedData);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
   const handleSubmit = async () => {
-    if (uploading) return;
+    if (uploading || !singleFile) return;
 
     setUploading(true);
 
     try {
-      // Handle Excel data if present
-      if (previewData) {
-        // Insert the service data first
-        const serviceResponse = await axios.post(url + "service/insertdata", {
-          data: previewData,
-        });
+      let dataToUpload = previewData;
 
-        // Extract serviceID from the response
-        const serviceID = serviceResponse.data.id;
-
-        // Now handle file upload if present
-        if (multipleFiles.length > 0) {
-          const fileTypes = multipleFiles.map((file) => {
-            // Detect file type based on the file name
-            if (file.name.toLowerCase().includes("pr")) {
-              return "pr";
-            } else if (file.name.toLowerCase().includes("po")) {
-              return "po";
-            } else if (file.name.toLowerCase().includes("contract")) {
-              return "contract";
-            } else {
-              return "unknown"; // Default file type if no match
-            }
-          });
-
-          const formData = new FormData();
-          multipleFiles.forEach((file) => formData.append("files", file));
-          formData.append("serviceID", serviceID); // Attach serviceID
-          formData.append("fileTypes", JSON.stringify(fileTypes)); // Attach file types
-
-          // Upload the files and link to the service
-          await axios.post(url + "service/insertdoc", formData, {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          });
-
-          alert("Files uploaded and linked to service successfully");
+      // Parse Excel if user skipped preview
+      if (!previewData) {
+        dataToUpload = await parseExcelFile(singleFile);
+        if (!dataToUpload || dataToUpload.length === 0) {
+          alert("Excel file is empty or invalid");
+          return;
         }
-
-        alert("Service data saved successfully");
       }
 
-      // Reset states after submission
+      const serviceResponse = await axios.post(url + "service/insertdata", {
+        data: dataToUpload,
+      });
+
+      const serviceID = serviceResponse.data.id;
+
+      if (multipleFiles.length > 0) {
+        const fileTypes = multipleFiles.map((file) => {
+          const name = file.name.toLowerCase();
+          if (name.includes("pr")) return "pr";
+          if (name.includes("po")) return "po";
+          if (name.includes("contract")) return "contract";
+          return "unknown";
+        });
+
+        const formData = new FormData();
+        multipleFiles.forEach((file) => formData.append("files", file));
+        formData.append("serviceID", serviceID);
+        formData.append("fileTypes", JSON.stringify(fileTypes));
+
+        await axios.post(url + "service/insertdoc", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        alert("Files uploaded and linked to service successfully");
+      }
+
+      alert("Service data saved successfully");
       setSingleFile(null);
       setPreviewData(null);
       setMultipleFiles([]);
@@ -201,10 +211,10 @@ export default function InsertDocData() {
       {previewData && (
         <div className="mt-5">
           <h4>Preview Data</h4>
-          <div style={{ overflowX: "auto" }}>
+          <div className="table-responsive">
             <table className="table table-bordered">
               <thead>
-                <tr>
+                <tr style={{ minWidth: "600px" }}>
                   {Object.keys(previewData[0]).map((header, idx) => (
                     <th key={idx}>{header}</th>
                   ))}

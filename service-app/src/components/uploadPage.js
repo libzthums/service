@@ -20,7 +20,7 @@ export default function UploadPage() {
           <Link to="/insertDocData" className="text-decoration-none">
             <Card className="shadow-sm p-4 text-center rounded-3 d-flex justify-content-center align-items-center">
               <i className="nav-icon fa fa-file fs-1 mb-3"></i>
-              <h5 className="fw-bold">Document</h5>
+              <h5 className="fw-bold">Excel</h5>
             </Card>
           </Link>
         </Col>

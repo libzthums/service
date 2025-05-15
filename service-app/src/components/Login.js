@@ -21,6 +21,11 @@ const Login = () => {
     }
   }, []);
 
+/**
+ * The function `handleLogin` is an asynchronous function that sends a POST request to a login
+ * endpoint, stores the token and user data in local storage upon successful login, and navigates to
+ * the home page, while displaying an alert if the login fails.
+ */
   const handleLogin = async () => {
     try {
       const res = await axios.post(url + "login", {

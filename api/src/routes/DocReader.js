@@ -2,57 +2,47 @@ const db = require("../db/sql");
 const express = require("express");
 const router = express.Router();
 
-router.get("/pr/:serviceID", async (req, res) => {
+router.get("/docreader/:serviceID", async (req, res) => {
+  const { serviceID } = req.params;
+
   try {
-    const { serviceID } = req.params;
+    // Query to fetch documents from ServiceDocument table and sort by DocType
+    const query = `
+      SELECT DocName, DocPath, DocType
+      FROM ServiceDocument
+      WHERE serviceID = @serviceID
+      ORDER BY DocType ASC
+    `;
+
     const pool = await db.connectDB();
-    const query = `SELECT DocName, DocPath FROM ServicePRDocument WHERE serviceID = @serviceID`;
+    const request = pool.request();
+    request.input("serviceID", db.sql.Int, serviceID);
 
-    const result = await pool
-      .request()
-      .input("serviceID", db.sql.Int, serviceID)
-      .query(query);
+    const result = await request.query(query);
 
-    res.json(result.recordset);
+    // Group documents by DocType
+    const groupedDocs = result.recordset.reduce(
+      (acc, doc) => {
+        if (doc.DocType === "pr") {
+          acc.prDocs.push(doc);
+        } else if (doc.DocType === "po") {
+          acc.poDocs.push(doc);
+        } else if (doc.DocType === "contract") {
+          acc.contractDocs.push(doc);
+        }
+        return acc;
+      },
+      { prDocs: [], poDocs: [], contractDocs: [] }
+    );
+
+    const hasPR = groupedDocs.prDocs.length > 0;
+    const hasPO = groupedDocs.poDocs.length > 0;
+    const hasContract = groupedDocs.contractDocs.length > 0;
+
+    res.json({ ...groupedDocs, hasPR, hasPO, hasContract });
   } catch (error) {
-    console.error("Error fetching PR documents:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-router.get("/po/:serviceID", async (req, res) => {
-  try {
-    const { serviceID } = req.params;
-    const pool = await db.connectDB();
-    const query = `SELECT DocName, DocPath FROM ServicePODocument WHERE serviceID = @serviceID`;
-
-    const result = await pool
-      .request()
-      .input("serviceID", db.sql.Int, serviceID)
-      .query(query);
-
-    res.json(result.recordset);
-  } catch (error) {
-    console.error("Error fetching PO documents:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-router.get("/contract/:serviceID", async (req, res) => {
-  try {
-    const { serviceID } = req.params;
-    const pool = await db.connectDB();
-    const query = `SELECT DocName, DocPath FROM ServiceDocument WHERE serviceID = @serviceID`;
-
-    const result = await pool
-      .request()
-      .input("serviceID", db.sql.Int, serviceID)
-      .query(query);
-
-    res.json(result.recordset);
-  } catch (error) {
-    console.error("Error fetching Contract documents:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Error fetching documents:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

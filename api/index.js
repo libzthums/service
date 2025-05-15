@@ -6,7 +6,6 @@ const cors = require("cors");
 const path = require("path");
 
 const service = require("./src/routes/service");
-const docloader = require("./src/routes/DocUploader");
 const docreader = require("./src/routes/DocReader");
 const login = require("./src/routes/UserChecker");
 const registerroute = require("./src/routes/register");
@@ -36,19 +35,17 @@ app.use(express.static("public"));
 
 // API Routes
 app.use("/api/service", service);
-app.use("/api/docloader", docloader);
 app.use("/api/docreader", docreader);
 app.use("/api/login", login);
 app.use("/register", registerroute);
 app.use("/api/userManage", userManage);
 
-// Serve React frontend
-app.use(express.static(path.join(__dirname, "..", "service-app", "build")));
-app.get("*", (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "..", "service-app", "build", "index.html")
-  );
-});
+// app.use(express.static(path.join(__dirname, "..", "service-app", "build")));
+// app.get("*", (req, res) => {
+//   res.sendFile(
+//     path.join(__dirname, "..", "service-app", "build", "index.html")
+//   );
+// });
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

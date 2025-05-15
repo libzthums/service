@@ -93,8 +93,33 @@ export default function Main() {
   const fetchData = useCallback(() => {
     axios
       .get(url + "service")
-      .then((response) => {
-        setData(response.data);
+      .then(async (response) => {
+        const services = response.data;
+
+        // Fetch document indicators for each service
+        const updatedServices = await Promise.all(
+          services.map(async (service) => {
+            try {
+              const docResponse = await axios.get(
+                `${url}docreader/${service.serviceID}`
+              );
+              return {
+                ...service,
+                hasPR: docResponse.data.hasPR,
+                hasPO: docResponse.data.hasPO,
+                hasContract: docResponse.data.hasContract,
+              };
+            } catch (error) {
+              console.error(
+                `Error fetching document indicators for serviceID ${service.serviceID}:`,
+                error
+              );
+              return service;
+            }
+          })
+        );
+
+        setData(updatedServices);
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
@@ -255,13 +280,63 @@ export default function Main() {
     },
     {
       field: "actions",
-      headerName: "Document",
+      headerName: "",
       flex: 1,
-      minWidth: 120,
+      minWidth: 80,
       renderCell: (params) => (
         <Link to={`/docDetail/${params.row?.serviceID}`}>
           <Button variant="primary">View</Button>
         </Link>
+      ),
+    },
+    {
+      field: "showdot",
+      headerName: "",
+      flex: 1,
+      minWidth: 80,
+      renderCell: (params) => (
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center", // Center horizontally
+            gap: "8px",
+          }}>
+          {/* PR status circle */}
+          <div
+            title="PR"
+            style={{
+              width: "12px",
+              height: "12px",
+              borderRadius: "50%",
+              backgroundColor: params.row?.hasPR ? "#198754" : "#dc3545",
+            }}
+          />
+
+          {/* PO status circle */}
+          <div
+            title="PO"
+            style={{
+              width: "12px",
+              height: "12px",
+              borderRadius: "50%",
+              backgroundColor: params.row?.hasPO ? "#198754" : "#dc3545",
+            }}
+          />
+
+          {/* Contract status circle */}
+          <div
+            title="Contract"
+            style={{
+              width: "12px",
+              height: "12px",
+              borderRadius: "50%",
+              backgroundColor: params.row?.hasContract ? "#198754" : "#dc3545",
+            }}
+          />
+        </div>
       ),
     },
   ];
@@ -326,7 +401,6 @@ export default function Main() {
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           pageSizeOptions={[10, 25, 50]}
-          disableColumnMenu
         />
       </div>
 

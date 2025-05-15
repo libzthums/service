@@ -5,7 +5,7 @@ import { useUser } from "../context/userContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 
-export default function InsertData({ onSuccess }) {
+export default function InsertData() {
   const { url } = useContext(UrlContext);
   const { user, activeDivision } = useUser();
   const navigate = useNavigate();
@@ -70,6 +70,12 @@ export default function InsertData({ onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate that the end date is not earlier than the start date
+    if (new Date(formData.endDate) < new Date(formData.startDate)) {
+      alert("End Date cannot be earlier than Start Date.");
+      return;
+    }
+
     try {
       await axios.post(url + "service/insertdata", formData);
       alert("Service added successfully!");
@@ -104,7 +110,6 @@ export default function InsertData({ onSuccess }) {
       setUploadedFiles([]);
       setSelectedFile(null);
       setFileType("");
-      onSuccess();
     } catch (error) {
       console.error("Error submitting data or uploading files:", error);
       alert("An error occurred. Please try again.");
@@ -142,8 +147,7 @@ export default function InsertData({ onSuccess }) {
       return;
     }
 
-    // Validate file size (e.g., max 5MB)
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
     if (selectedFile.size > MAX_FILE_SIZE) {
       alert("File size exceeds the maximum limit of 5MB.");
       return;
@@ -182,7 +186,7 @@ export default function InsertData({ onSuccess }) {
       </div>
       <form onSubmit={handleSubmit}>
         <div className="row">
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>
               Description <span style={{ color: "red" }}>*</span>
             </label>
@@ -197,7 +201,7 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>Division</label>
             <select
               className="form-control"
@@ -219,7 +223,7 @@ export default function InsertData({ onSuccess }) {
             </select>
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>S/N</label>
             <input
               type="text"
@@ -231,7 +235,7 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>
               Contract No. <span style={{ color: "red" }}>*</span>
             </label>
@@ -246,7 +250,7 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>Brand</label>
             <input
               type="text"
@@ -258,7 +262,7 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>Model</label>
             <input
               type="text"
@@ -270,7 +274,7 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>
               Type <span style={{ color: "red" }}>*</span>
             </label>
@@ -289,7 +293,7 @@ export default function InsertData({ onSuccess }) {
             </select>
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>Location</label>
             <input
               type="text"
@@ -301,7 +305,7 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>
               Price <span style={{ color: "red" }}>*</span>
             </label>
@@ -316,7 +320,7 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>
               Vendor Name <span style={{ color: "red" }}>*</span>
             </label>
@@ -331,7 +335,7 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>
               Issue Date <span style={{ color: "red" }}>*</span>
             </label>
@@ -346,7 +350,7 @@ export default function InsertData({ onSuccess }) {
             />
           </div>
 
-          <div className="col-md-6 mb-3">
+          <div className="col-md-6 mb-1">
             <label>
               Expired Date <span style={{ color: "red" }}>*</span>
             </label>

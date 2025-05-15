@@ -1,3 +1,7 @@
+/**
+ * The Sidebar component in this React application displays navigation links based on user permissions
+ * and allows users to switch between different divisions.
+ */
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button, Form } from "react-bootstrap";
@@ -8,6 +12,8 @@ export default function Sidebar() {
   const [isTotalOpen, setTotalOpen] = useState(false);
   const { user, activeDivision, setActiveDivision } = useUser();
 
+/* The `useEffect` hook in the provided code snippet is responsible for setting the active division
+when the component mounts or when the `user` or `activeDivision` state changes. */
   useEffect(() => {
     if (user?.divisionIDs?.length > 0 && !activeDivision) {
       const defaultID = user.divisionIDs[0];
@@ -19,6 +25,13 @@ export default function Sidebar() {
     }
   }, [user, activeDivision, setActiveDivision]);
 
+/**
+ * The function `handleDivisionChange` updates the active division based on the selected division ID
+ * and persists the selection in local storage.
+ * @param e - The parameter `e` in the `handleDivisionChange` function is typically an event object
+ * that represents the event being handled, such as a change event on an input element. In this case,
+ * it is used to extract the new value selected by the user from the event target.
+ */
   const handleDivisionChange = (e) => {
     const newID = parseInt(e.target.value);
     const index = user.divisionIDs.indexOf(newID);
@@ -140,14 +153,15 @@ export default function Sidebar() {
                 className={`nav nav-treeview ${
                   isTotalOpen ? "d-block" : "d-none"
                 }`}>
-                <NavItem to="/totalPage" state={{ status: 1 }} label="">
-                  <span style={{ marginLeft: "34.5px" }}>Per month</span>
-                </NavItem>
-                <NavItem to="/totalPage" state={{ status: 2 }} label="">
+                <NavItem to="/totalPage" label="">
                   <span style={{ marginLeft: "34.5px" }}>Per year</span>
+                </NavItem>
+                <NavItem to="/summaryPage" label="">
+                  <span style={{ marginLeft: "34.5px" }}>Summary</span>
                 </NavItem>
               </ul>
             </li>
+            {/* <NavItem to="/summaryPage" icon="fa fa-chart-pie" label="Summary" /> */}
             {user?.permission === `Admin` && (
               <NavItem to="/setting" icon="fa fa-cog" label="Setting" />
             )}

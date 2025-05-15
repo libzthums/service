@@ -1,4 +1,3 @@
-import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./layout/sidebar";
 import Header from "./layout/header";
@@ -19,7 +18,16 @@ import Setting from "./components/setting";
 import SettingDivision from "./components/settingDivision";
 import SettingPermission from "./components/settingPermission";
 import SettingType from "./components/settingType";
+import SummaryPage from "./components/summaryPage";
 
+/**
+ * The ProtectedRoute component checks user authentication status and redirects to the login page if
+ * necessary before rendering its children.
+ * @returns The ProtectedRoute component returns the children components if the user is authenticated
+ * and not loading. If the user is not authenticated, it will navigate to the login page. If the token
+ * has expired, it will remove the token from localStorage and navigate to the login page. If the
+ * loading state is true, it will display a "Loading..." message.
+ */
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useUser();
   const navigate = useNavigate();
@@ -140,6 +148,14 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <SettingType />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/summaryPage"
+                element={
+                  <ProtectedRoute>
+                    <SummaryPage />
                   </ProtectedRoute>
                 }
               />

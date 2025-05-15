@@ -2,6 +2,15 @@ import { createContext, useState, useContext, useEffect } from "react";
 
 const UserContext = createContext();
 
+/**
+ * The `UserProvider` function is a React component that provides user-related context data to its
+ * children components.
+ * @returns The `UserProvider` component is being returned. It is a context provider component that
+ * provides user-related data and functions to its children components through the
+ * `UserContext.Provider`. The component includes state variables for `user`, `loading`,
+ * `activeDivision`, and `token`, as well as functions like `setUser` and `setActiveDivision`. It also
+ * initializes these states using `localStorage` data when the component mounts.
+ */
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

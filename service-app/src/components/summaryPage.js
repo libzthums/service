@@ -13,14 +13,16 @@ import { useUser } from "../context/userContext";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
-export default function TotalPage() {
+export default function SummaryPage() {
   const { url } = useContext(UrlContext);
   const { user, activeDivision } = useUser();
 
-  const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [filteredData, setFilteredData] = useState([]);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [filteredData, setFilteredData] = useState([]);
+  const [startYear, setStartYear] = useState(2023);
+  const [endYear, setEndYear] = useState(2025);
+
+  const today = new Date();
   const [fromYear, setFromYear] = useState(today.getFullYear());
   const [toYear, setToYear] = useState(today.getFullYear());
 
@@ -34,9 +36,6 @@ export default function TotalPage() {
     []
   );
 
-  const handlePrevYear = () => setYear((prev) => prev - 1);
-  const handleNextYear = () => setYear((prev) => prev + 1);
-
   const fetchData = useCallback(() => {
     axios
       .get(url + "service")
@@ -46,141 +45,67 @@ export default function TotalPage() {
           ? res.data
           : res.data.filter((item) => item.divisionID === activeDivision.id);
 
+        // Determine start and end year based on data
+        let minYear = new Date().getFullYear();
+        let maxYear = new Date().getFullYear();
+
         services.forEach((item) => {
           const start = new Date(item.startDate);
           const end = new Date(item.endDate);
 
-          // Skip services outside the selected year
-          if (start.getFullYear() > year || end.getFullYear() < year) return;
+          if (start.getFullYear() < minYear) minYear = start.getFullYear();
+          if (end.getFullYear() > maxYear) maxYear = end.getFullYear();
+        });
+
+        setStartYear(minYear);
+        setEndYear(maxYear);
+
+        const monthRange = [];
+        for (let y = minYear; y <= maxYear; y++) {
+          for (let m = 0; m < 12; m++) {
+            monthRange.push({ year: y, month: m });
+          }
+        }
+
+        services.forEach((item) => {
+          const start = new Date(item.startDate);
+          const end = new Date(item.endDate);
+
+          if (end.getFullYear() < minYear || start.getFullYear() > maxYear)
+            return;
 
           const groupKey =
             item.serialNumber || item.contractNo || item.serviceID;
           const status = item.expireStatusName?.toLowerCase();
           if (status !== "issued" && status !== "expire in 3 months") return;
 
-          // Initialize group if needed
           if (!grouped[groupKey]) {
             grouped[groupKey] = {
               ...item,
               serviceIDs: [item.serviceID],
-              monthlyCharges: Array(12).fill(0),
+              monthlyCharges: {},
             };
           } else {
             grouped[groupKey].serviceIDs.push(item.serviceID);
           }
 
-          // Merge charges into the same 12-month array
-          for (let month = 0; month < 12; month++) {
+          monthRange.forEach(({ year, month }) => {
             const monthStart = new Date(year, month, 1);
             const monthEnd = new Date(year, month + 1, 0);
 
             if (monthEnd >= start && monthStart <= end) {
-              grouped[groupKey].monthlyCharges[month] += Number(
-                item.monthly_charge
-              );
+              const key = `${year}-${month}`;
+              grouped[groupKey].monthlyCharges[key] =
+                (grouped[groupKey].monthlyCharges[key] || 0) +
+                Number(item.monthly_charge);
             }
-          }
+          });
         });
 
         setFilteredData(Object.values(grouped));
       })
       .catch((err) => console.error("Failed to fetch:", err));
-  }, [url, year, isAdmin, activeDivision.id]);
-
-  // const exportToExcel = async () => {
-  //   const workbook = new ExcelJS.Workbook();
-  //   const worksheet = workbook.addWorksheet(`Total ${year}`);
-
-  //   // Header row
-  //   const header = ["Description", ...monthNames, "Total"];
-  //   worksheet.addRow(header);
-  //   worksheet.getRow(1).font = { bold: true };
-
-  //   // Data rows
-  //   filteredData.forEach((row) => {
-  //     const dataRow = [
-  //       row.DeviceName,
-  //       ...monthNames.map((_, i) =>
-  //         row.warrantyMonths.includes(i)
-  //           ? "On Warranty"
-  //           : row.monthlyCharges[i] > 0
-  //           ? row.monthlyCharges[i]
-  //           : "-"
-  //       ),
-  //       row.monthlyCharges.reduce(
-  //         (sum, charge, i) =>
-  //           row.warrantyMonths.includes(i) ? sum : sum + charge,
-  //         0
-  //       ),
-  //     ];
-  //     const addedRow = worksheet.addRow(dataRow);
-
-  //     // Style each cell in the row
-  //     dataRow.forEach((cell, i) => {
-  //       const cellRef = addedRow.getCell(i + 1);
-
-  //       // Currency format
-  //       if (typeof cell === "number" && i !== 0 && i !== dataRow.length - 1) {
-  //         cellRef.numFmt = '"฿"#,##0.00';
-  //       }
-
-  //       // Highlight "On Warranty"
-  //       if (cell === "On Warranty") {
-  //         cellRef.fill = {
-  //           type: "pattern",
-  //           pattern: "solid",
-  //           fgColor: { argb: "FFFFC000" }, // light yellow
-  //         };
-  //       }
-  //     });
-  //   });
-
-  //   // Total row
-  //   const totalRowValues = ["Total"];
-  //   for (let i = 0; i < 12; i++) {
-  //     const monthlyTotal = filteredData.reduce(
-  //       (sum, row) =>
-  //         row.warrantyMonths.includes(i) ? sum : sum + row.monthlyCharges[i],
-  //       0
-  //     );
-  //     totalRowValues.push(monthlyTotal > 0 ? monthlyTotal : "-");
-  //   }
-
-  //   const yearlyTotal = filteredData.reduce((sum, row) => {
-  //     return (
-  //       sum +
-  //       row.monthlyCharges.reduce(
-  //         (s, c, i) => (row.warrantyMonths.includes(i) ? s : s + c),
-  //         0
-  //       )
-  //     );
-  //   }, 0);
-
-  //   totalRowValues.push(yearlyTotal);
-  //   const totalRow = worksheet.addRow(totalRowValues);
-  //   totalRow.font = { bold: true };
-
-  //   // Format totals row cells
-  //   totalRow.eachCell((cell, colNumber) => {
-  //     if (typeof cell.value === "number") {
-  //       cell.numFmt = '"฿"#,##0.00';
-  //     }
-  //   });
-
-  //   // Auto width
-  //   worksheet.columns.forEach((col) => {
-  //     let maxLen = 12;
-  //     col.eachCell({ includeEmpty: true }, (cell) => {
-  //       const val = cell.value ? cell.value.toString() : "";
-  //       maxLen = Math.max(maxLen, val.length);
-  //     });
-  //     col.width = maxLen + 2;
-  //   });
-
-  //   // Export
-  //   const buffer = await workbook.xlsx.writeBuffer();
-  //   saveAs(new Blob([buffer]), `Service_Total_${year}.xlsx`);
-  // };
+  }, [url, isAdmin, activeDivision.id]);
 
   const exportToExcelInRange = async () => {
     const workbook = new ExcelJS.Workbook();
@@ -335,85 +260,112 @@ export default function TotalPage() {
     fetchData();
   }, [fetchData]);
 
+  const monthRange = useMemo(() => {
+    const months = [];
+    for (let y = startYear; y <= endYear; y++) {
+      for (let m = 0; m < 12; m++) {
+        months.push({ year: y, month: m });
+      }
+    }
+    return months;
+  }, [startYear, endYear]);
+
   return (
     <div className="container p-4">
-      <h4>Total cost per year in {year}</h4>
-
-      <div className="d-flex justify-content-between align-items-center my-3">
-        <Button variant="light" onClick={handlePrevYear}>
-          &lt;&lt; Previous year
-        </Button>
-        <Button variant="light" onClick={handleNextYear}>
-          Next year &gt;&gt;
-        </Button>
-      </div>
+      <h4>
+        Total cost from Jan {startYear} to Dec {endYear}
+      </h4>
 
       <div className="mt-3">
-        <Table striped hover responsive size="lg">
+        <Table striped bordered hover responsive>
           <thead>
             <tr>
-              <th style={{ textAlign: "center", minWidth: "200px" }}>
+              <th
+                style={{
+                  textAlign: "center",
+                  minWidth: "250px",
+                  position: "sticky",
+                  left: 0,
+                  backgroundColor: "#fff",
+                  zIndex: 1,
+                }}>
                 Description
               </th>
               {isAdmin && <th style={{ textAlign: "center" }}>Division</th>}
-              <th style={{ textAlign: "center" }}>View</th>
-              {monthNames.map((month, i) => (
-                <th style={{ textAlign: "center", minWidth: "100px" }} key={i}>
-                  {month}
+              <th
+                style={{
+                  textAlign: "center",
+                  position: "sticky",
+                  left: "250px",
+                  backgroundColor: "#fff",
+                  zIndex: 1,
+                }}>
+                View
+              </th>
+              {monthRange.map(({ year, month }) => (
+                <th
+                  key={`${year}-${month}`}
+                  style={{ textAlign: "center", minWidth: "100px" }}>
+                  {monthNames[month]} {year}
                 </th>
               ))}
+              <th style={{ textAlign: "center" }}>Total</th>
             </tr>
           </thead>
           <tbody>
             {filteredData.length > 0 ? (
               <>
                 {filteredData.map((row) => {
-                  const rowTotal = row.monthlyCharges.reduce(
-                    (sum, charge, index) => {
-                      return row.warrantyMonths.includes(index)
-                        ? sum
-                        : sum + charge;
-                    },
+                  const total = Object.entries(row.monthlyCharges).reduce(
+                    (sum, [, charge]) => sum + charge,
                     0
                   );
                   return (
                     <tr key={row.serviceID}>
-                      <td className="text-start">{row.DeviceName}</td>
+                      <td
+                        className="text-start"
+                        style={{
+                          position: "sticky",
+                          left: 0,
+                          backgroundColor: "#fff",
+                          zIndex: 2,
+                        }}>
+                        {row.DeviceName}
+                      </td>
                       {isAdmin && <td>{row.divisionName}</td>}
-                      <td>
+                      <td
+                        className="text-start"
+                        style={{
+                          position: "sticky",
+                          left: "250px",
+                          backgroundColor: "#fff",
+                          zIndex: 2,
+                        }}>
                         <Link to={`/docDetail/${row.serviceID}`}>
                           <Button variant="info" size="sm">
                             View
                           </Button>
                         </Link>
                       </td>
-                      {row.monthlyCharges.map((charge, index) => (
-                        <td
-                          key={index}
-                          className="text-center"
-                          style={
-                            row.warrantyMonths.includes(index)
-                              ? { backgroundColor: "#fff3cd" }
-                              : {}
-                          }>
-                          {row.warrantyMonths.includes(index)
-                            ? "On Warranty"
-                            : charge > 0
-                            ? charge.toLocaleString("th-TH", {
-                                style: "currency",
-                                currency: "THB",
-                              })
-                            : "-"}
-                        </td>
-                      ))}
-                      {/* Row Total */}
+                      {monthRange.map(({ year, month }) => {
+                        const key = `${year}-${month}`;
+                        const charge = row.monthlyCharges[key];
+                        return (
+                          <td key={key} className="text-center">
+                            {charge
+                              ? charge.toLocaleString("th-TH", {
+                                  style: "currency",
+                                  currency: "THB",
+                                })
+                              : "-"}
+                          </td>
+                        );
+                      })}
                       <td
                         className="text-center"
-                        style={{
-                          fontWeight: "bold",
-                        }}>
-                        {rowTotal > 0
-                          ? rowTotal.toLocaleString("th-TH", {
+                        style={{ fontWeight: "bold" }}>
+                        {total > 0
+                          ? total.toLocaleString("th-TH", {
                               style: "currency",
                               currency: "THB",
                             })
@@ -423,19 +375,27 @@ export default function TotalPage() {
                   );
                 })}
 
-                {/* Monthly Totals Row */}
+                {/* Total Row */}
                 <tr className="text-center" style={{ fontWeight: "bold" }}>
-                  <td colSpan={isAdmin ? 3 : 2}>Total</td>
-                  {Array.from({ length: 12 }, (_, monthIndex) => {
-                    const monthlyTotal = filteredData.reduce((sum, row) => {
-                      return row.warrantyMonths.includes(monthIndex)
-                        ? sum
-                        : sum + row.monthlyCharges[monthIndex];
+                  <td
+                    colSpan={isAdmin ? 3 : 2}
+                    style={{
+                      position: "sticky",
+                      left: 0,
+                      backgroundColor: "#fff",
+                      zIndex: 2,
+                    }}>
+                    Total
+                  </td>
+                  {monthRange.map(({ year, month }) => {
+                    const key = `${year}-${month}`;
+                    const total = filteredData.reduce((sum, row) => {
+                      return sum + (row.monthlyCharges[key] || 0);
                     }, 0);
                     return (
-                      <td key={monthIndex}>
-                        {monthlyTotal > 0
-                          ? monthlyTotal.toLocaleString("th-TH", {
+                      <td key={key}>
+                        {total > 0
+                          ? total.toLocaleString("th-TH", {
                               style: "currency",
                               currency: "THB",
                             })
@@ -443,17 +403,15 @@ export default function TotalPage() {
                       </td>
                     );
                   })}
-                  {/* Overall Yearly Total */}
                   <td>
                     {filteredData
-                      .reduce((total, row) => {
+                      .reduce((sum, row) => {
                         return (
-                          total +
-                          row.monthlyCharges.reduce((sum, charge, index) => {
-                            return row.warrantyMonths.includes(index)
-                              ? sum
-                              : sum + charge;
-                          }, 0)
+                          sum +
+                          Object.values(row.monthlyCharges).reduce(
+                            (s, c) => s + c,
+                            0
+                          )
                         );
                       }, 0)
                       .toLocaleString("th-TH", {
@@ -465,7 +423,11 @@ export default function TotalPage() {
               </>
             ) : (
               <tr>
-                <td colSpan={isAdmin ? 17 : 16} className="text-center">
+                <td
+                  colSpan={
+                    isAdmin ? monthRange.length + 4 : monthRange.length + 3
+                  }
+                  className="text-center">
                   No data available.
                 </td>
               </tr>

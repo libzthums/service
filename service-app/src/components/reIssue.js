@@ -618,7 +618,6 @@ export default function Reissue() {
           getRowId={(row) => row.serviceID ?? row.serialNumber ?? row.id}
           pagination
           pageSize={10}
-          disableColumnMenu
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           pageSizeOptions={[10, 25, 50]}
@@ -640,13 +639,32 @@ export default function Reissue() {
                 <Col md={6}>
                   <Form.Group controlId="formDeviceName">
                     <Form.Label>Description</Form.Label>
-                    <Form.Control type="text" value={editData.DeviceName} />
+                    <Form.Control
+                      type="text"
+                      value={editData.DeviceName}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          DeviceName: e.target.value,
+                        })
+                      }
+                    />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group controlId="divisionName">
                     <Form.Label>Division</Form.Label>
-                    <Form.Control type="text" value={editData.divisionName} />
+                    <Form.Control
+                      type="text"
+                      value={editData.divisionName}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          divisionName: e.target.value,
+                        })
+                      }
+                      disabled
+                    />
                   </Form.Group>
                 </Col>
               </Row>

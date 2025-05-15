@@ -1,5 +1,7 @@
 import React from "react";
 
+/* The `ErrorBoundary` class in JavaScript is used to catch errors in React components and display a
+fallback UI when an error occurs. */
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);

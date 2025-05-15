@@ -32,23 +32,7 @@ const storage = multer.diskStorage({
       // Handle Word documents
     }
 
-    const fileTypeFromBody = fileTypes[req.files.indexOf(file)];
-    let dirPath;
-
-    // Determine the directory based on the fileType
-    switch (fileTypeFromBody) {
-      case "pr":
-        dirPath = path.join("uploads", "ServicePRDocument");
-        break;
-      case "po":
-        dirPath = path.join("uploads", "ServicePODocument");
-        break;
-      case "contract":
-        dirPath = path.join("uploads", "ServiceDocument");
-        break;
-      default:
-        return cb(new Error("Invalid file type."), null);
-    }
+    const dirPath = path.join("uploads", "ServiceDocument");
 
     // Create directory if it doesn't exist
     if (!fs.existsSync(dirPath)) {
@@ -103,6 +87,23 @@ const calculateExpireStatus = (endDate) => {
   }
 };
 
+// Function to calculate warranty status for each month
+const calculateWarrantyStatus = (startDate, endDate, warrantyCount) => {
+  const warrantyMonths = [];
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  for (let i = 0; i < warrantyCount; i++) {
+    const warrantyMonth = new Date(start);
+    warrantyMonth.setMonth(start.getMonth() + i);
+    if (warrantyMonth <= end) {
+      warrantyMonths.push(warrantyMonth.getMonth()); // Store the month index
+    }
+  }
+
+  return warrantyMonths;
+};
+
 // GET Route for fetching services
 router.get("/", async (req, res) => {
   try {
@@ -120,7 +121,7 @@ router.get("/", async (req, res) => {
       service.startDate, 
       service.endDate, 
       service.vendorName, 
-      service.vendorPhone,
+      service.warrantyCount,
       division.divisionID,
       division.divisionName,
       MAX(sd.monthly_charge) AS monthly_charge
@@ -131,7 +132,7 @@ router.get("/", async (req, res) => {
       service.serviceID, service.DeviceName, service.serialNumber, 
       service.contractNo, service.Brand,
       service.Model, service.Type, service.Location, service.price, service.startDate, 
-      service.endDate, service.vendorName, service.vendorPhone, 
+      service.endDate, service.vendorName, service.warrantyCount, 
       division.divisionID,division.divisionName
     `;
 
@@ -147,13 +148,20 @@ router.get("/", async (req, res) => {
       return acc;
     }, {});
 
-    // Add expireStatus to each service and map to statusName
+    // Add expireStatus and warrantyMonths to each service
     const updatedData = data.map((row) => {
       const expireStatus = calculateExpireStatus(row.endDate);
+      const warrantyMonths = calculateWarrantyStatus(
+        row.startDate,
+        row.endDate,
+        row.warrantyCount
+      );
+
       return {
         ...row,
         expireStatus,
         expireStatusName: statusMap[expireStatus] || "Unknown",
+        warrantyMonths, // Add warranty months to the response
       };
     });
 
@@ -167,78 +175,99 @@ router.get("/", async (req, res) => {
 // INSERT new service
 router.post("/insertdata", async (req, res) => {
   try {
-    const {
-      DeviceName,
-      divisionID,
-      price,
-      startDate,
-      endDate,
-      vendorName,
-      vendorPhone,
-      serialNumber,
-      contractNo,
-      Brand,
-      Model,
-      Type,
-      Location,
-    } = req.body;
+    const dataArray = Array.isArray(req.body)
+      ? req.body
+      : Array.isArray(req.body.data)
+      ? req.body.data
+      : [req.body.data || req.body];
 
-    if (!DeviceName || !divisionID || !serialNumber || !contractNo) {
-      return res.status(400).json({ error: "Missing required fields" });
+    if (!dataArray || dataArray.length === 0) {
+      return res.status(400).json({ error: "No data provided" });
     }
 
-    const chargeDates = generateChargeDates(startDate, endDate);
-    const months = chargeDates.length;
-    const monthlyCharge = (price / months).toFixed(2);
+    for (const data of dataArray) {
+      const {
+        DeviceName,
+        divisionID,
+        price,
+        startDate,
+        endDate,
+        vendorName,
+        serialNumber,
+        contractNo,
+        Brand,
+        Model,
+        Type,
+        Location,
+        WarrantyCount,
+      } = data;
 
-    const pool = await db.connectDB();
-    const request = pool.request();
-    request.input("DeviceName", db.sql.VarChar, DeviceName);
-    request.input("divisionID", db.sql.Int, divisionID);
-    request.input("price", db.sql.Float, price);
-    request.input("startDate", db.sql.Date, startDate);
-    request.input("endDate", db.sql.Date, endDate);
-    request.input("vendorName", db.sql.VarChar, vendorName);
-    request.input("vendorPhone", db.sql.VarChar, vendorPhone);
-    request.input("serialNumber", db.sql.VarChar, serialNumber);
-    request.input("contractNo", db.sql.VarChar, contractNo);
-    request.input("totalMonth", db.sql.Int, months);
-    request.input("Brand", db.sql.VarChar, Brand);
-    request.input("Model", db.sql.VarChar, Model);
-    request.input("Type", db.sql.VarChar, Type);
-    request.input("Location", db.sql.VarChar, Location);
+      if (!DeviceName || !divisionID) {
+        return res.status(400).json({ error: "Missing required fields!!!" });
+      }
 
-    // Insert service data into the Service table
-    const result = await request.query(`
-      INSERT INTO Service (DeviceName, divisionID, price, startDate, endDate, vendorName, vendorPhone, serialNumber, contractNo, totalMonth, Brand, Model, Type, Location)
-      VALUES (@DeviceName, @divisionID, @price, @startDate, @endDate, @vendorName, @vendorPhone, @serialNumber, @contractNo, @totalMonth, @Brand, @Model, @Type, @Location)
-      SELECT SCOPE_IDENTITY() AS serviceID;
-    `);
+      const chargeDates = generateChargeDates(startDate, endDate);
+      const months = chargeDates.length;
+      const monthlyCharge = (price / months).toFixed(2);
 
-    const serviceID = result.recordset ? result.recordset[0]?.serviceID : null;
-    if (!serviceID) {
-      return res.status(500).json({ error: "Failed to insert service." });
-    }
+      const pool = await db.connectDB();
+      const request = pool.request();
+      request.input("DeviceName", db.sql.VarChar, DeviceName);
+      request.input("divisionID", db.sql.Int, divisionID);
+      request.input("price", db.sql.Float, price);
+      request.input("startDate", db.sql.Date, startDate);
+      request.input("endDate", db.sql.Date, endDate);
+      request.input("vendorName", db.sql.VarChar, vendorName);
+      request.input("serialNumber", db.sql.VarChar, serialNumber);
+      request.input("contractNo", db.sql.VarChar, contractNo);
+      request.input("totalMonth", db.sql.Int, months);
+      request.input("Brand", db.sql.VarChar, Brand);
+      request.input("Model", db.sql.VarChar, Model);
+      request.input("Type", db.sql.VarChar, Type);
+      request.input("Location", db.sql.VarChar, Location);
+      request.input("WarrantyCount", db.sql.Int, WarrantyCount || 0);
 
-    // Insert service details for each month
-    for (const chargeDate of chargeDates) {
-      const serviceDetailRequest = pool.request();
-      serviceDetailRequest.input("serviceID", db.sql.Int, serviceID);
-      serviceDetailRequest.input("chargeDate", db.sql.Date, chargeDate);
-      serviceDetailRequest.input("monthlyCharge", db.sql.Float, monthlyCharge);
+      try {
+        const result = await request.query(`
+          INSERT INTO Service (DeviceName, divisionID, price, startDate, endDate, vendorName, serialNumber, contractNo, totalMonth, Brand, Model, Type, Location, WarrantyCount)
+          VALUES (@DeviceName, @divisionID, @price, @startDate, @endDate, @vendorName, @serialNumber, @contractNo, @totalMonth, @Brand, @Model, @Type, @Location, @WarrantyCount)
+          SELECT SCOPE_IDENTITY() AS serviceID;
+        `);
 
-      await serviceDetailRequest.query(`
-        INSERT INTO ServiceDetail (serviceID, charge_date, monthly_charge)
-        VALUES (@serviceID, @chargeDate, @monthlyCharge);
-      `);
+        const serviceID = result.recordset
+          ? result.recordset[0]?.serviceID
+          : null;
+        if (!serviceID) {
+          return res.status(500).json({ error: "Failed to insert service." });
+        }
+
+        // Insert service details for each month
+        for (const chargeDate of chargeDates) {
+          const serviceDetailRequest = pool.request();
+          serviceDetailRequest.input("serviceID", db.sql.Int, serviceID);
+          serviceDetailRequest.input("chargeDate", db.sql.Date, chargeDate);
+          serviceDetailRequest.input(
+            "monthlyCharge",
+            db.sql.Float,
+            monthlyCharge
+          );
+
+          await serviceDetailRequest.query(`
+            INSERT INTO ServiceDetail (serviceID, charge_date, monthly_charge)
+            VALUES (@serviceID, @chargeDate, @monthlyCharge);
+          `);
+        }
+      } catch (queryError) {
+        console.error("SQL Query Error:", queryError); // Log SQL errors
+        return res.status(500).json({ error: "Database query failed" });
+      }
     }
 
     res.status(201).json({
       message: "Service and service details added successfully",
-      id: serviceID,
     });
   } catch (error) {
-    console.error("Error inserting service:", error);
+    console.error("Error inserting service:", error); // Log general errors
     res.status(500).json({ error: "Database error" });
   }
 });
@@ -268,62 +297,35 @@ router.post("/insertdoc", upload.array("files", 10), async (req, res) => {
       return res.status(400).send("Missing or mismatched file data.");
     }
 
-    if (!serviceID || !fileTypes || fileTypes.length !== req.files.length) {
-      return res.status(400).send("Missing or mismatched file data.");
-    }
-
-    // Extract file details and insert them into the correct table in MSSQL
+    // Extract file details and insert them into the ServiceDocument table
     const files = req.files.map((file, index) => ({
       serviceID, // Link the file to the serviceID
       fileName: file.filename,
       filePath: file.path,
-      fileType: fileTypes[index], // Associate each file with its file type
+      docType: fileTypes[index], // Associate each file with its file type
     }));
 
-    // Insert file metadata into MSSQL based on file type
-    for (let file of files) {
-      let tableName;
-
-      switch (file.fileType) {
-        case "pr":
-          tableName = "ServicePRDocument";
-          break;
-        case "po":
-          tableName = "ServicePODocument";
-          break;
-        case "contract":
-          tableName = "ServiceDocument";
-          break;
-        default:
-          return res.status(400).send("Invalid file type provided.");
-      }
-
+    // Insert file metadata into the ServiceDocument table
+    const pool = await db.connectDB();
+    for (const file of files) {
       const query = `
-        INSERT INTO ${tableName} (serviceID, DocName, DocPath)
-        VALUES (@ServiceID, @FileName, @FilePath)
+        INSERT INTO ServiceDocument (serviceID, DocName, DocPath, DocType)
+        VALUES (@ServiceID, @FileName, @FilePath, @DocType)
       `;
 
-      await db
-        .request()
-        .input("ServiceID", db.Int, file.serviceID) // Pass the serviceID from the request
-        .input("FileName", db.NVarChar, file.fileName)
-        .input("FilePath", db.NVarChar, file.filePath)
-        .query(query);
-    }
+      const request = pool.request();
+      request.input("ServiceID", db.sql.Int, file.serviceID);
+      request.input("FileName", db.sql.NVarChar, file.fileName);
+      request.input("FilePath", db.sql.NVarChar, file.filePath);
+      request.input("DocType", db.sql.NVarChar, file.docType);
 
-    for (const file of files) {
-      try {
-        await axios.post(url + "service/insertdoc", fileData);
-        console.log(`${file.name} uploaded successfully.`);
-      } catch (error) {
-        console.error(`Failed to upload ${file.name}:`, error);
-      }
+      await request.query(query);
     }
 
     res.status(200).send("Files uploaded and linked to service successfully.");
   } catch (error) {
     console.error("Error uploading files:", error);
-    alert("Failed to upload files. Please try again.");
+    res.status(500).send("Failed to upload files. Please try again.");
   }
 });
 
@@ -359,13 +361,7 @@ router.put("/updatedata/:serviceID", async (req, res) => {
     } = req.body; // Get the updated data from the request body
 
     // Ensure required fields are provided
-    if (
-      !serviceID ||
-      !DeviceName ||
-      !divisionID ||
-      !serialNumber ||
-      !contractNo
-    ) {
+    if (!serviceID || !divisionID) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
