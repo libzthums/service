@@ -10,6 +10,7 @@ const docreader = require("./src/routes/DocReader");
 const login = require("./src/routes/UserChecker");
 const registerroute = require("./src/routes/register");
 const userManage = require("./src/routes/userManage");
+const reIssue = require("./src/routes/reIssue");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -39,6 +40,7 @@ app.use("/api/docreader", docreader);
 app.use("/api/login", login);
 app.use("/register", registerroute);
 app.use("/api/userManage", userManage);
+app.use("/api/reIssue", reIssue);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // app.use(express.static(path.join(__dirname, "..", "service-app", "build")));
