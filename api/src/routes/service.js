@@ -317,21 +317,43 @@ router.post("/insertdoc", upload.array("files", 10), async (req, res) => {
       return res.status(400).send("No files uploaded.");
     }
 
+    const pool = await db.connectDB();
+
+    if (req.body.serviceID && req.body.fileTypes) {
+      const serviceID = parseInt(req.body.serviceID);
+      const fileTypes = JSON.parse(req.body.fileTypes); // assumed to be a JSON string array
+
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        const fileType = fileTypes[i] || "Unknown";
+
+        const insertQuery = `
+          INSERT INTO ServiceDocument (DocName, DocPath, DocType, serviceID)
+          VALUES (@DocName, @DocPath, @DocType, @ServiceID)
+        `;
+        const insertRequest = pool.request();
+        insertRequest.input("DocName", db.sql.NVarChar, file.originalname);
+        insertRequest.input("DocPath", db.sql.NVarChar, file.path);
+        insertRequest.input("DocType", db.sql.NVarChar, fileType);
+        insertRequest.input("ServiceID", db.sql.Int, serviceID);
+        await insertRequest.query(insertQuery);
+      }
+
+      return res
+        .status(200)
+        .send("Files uploaded and inserted with serviceID.");
+    }
+
     for (let i = 0; i < req.files.length; i++) {
       const file = req.files[i];
-      const docName = file.originalname; // Use the uploaded file's name
+      const docName = file.originalname;
 
-      // Find the ServiceDocument record with this DocName
-      const pool = await db.connectDB();
-      const checkQuery = `
-        SELECT * FROM ServiceDocument WHERE DocName = @DocName
-      `;
+      const checkQuery = `SELECT * FROM ServiceDocument WHERE DocName = @DocName`;
       const checkRequest = pool.request();
       checkRequest.input("DocName", db.sql.NVarChar, docName);
       const checkResult = await checkRequest.query(checkQuery);
 
       if (checkResult.recordset.length > 0) {
-        // Update the DocPath for the matched document
         const updateQuery = `
           UPDATE ServiceDocument
           SET DocPath = @DocPath
@@ -342,12 +364,11 @@ router.post("/insertdoc", upload.array("files", 10), async (req, res) => {
         updateRequest.input("DocName", db.sql.NVarChar, docName);
         await updateRequest.query(updateQuery);
       } else {
+        console.warn(`DocName ${docName} not found. Skipping.`);
       }
     }
 
-    res
-      .status(200)
-      .send("Files uploaded and matched to ServiceDocument by DocName.");
+    res.status(200).send("Files processed successfully.");
   } catch (error) {
     console.error("Error uploading files:", error);
     res.status(500).send("Failed to upload files. Please try again.");

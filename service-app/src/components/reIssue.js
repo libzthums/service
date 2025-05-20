@@ -443,8 +443,6 @@ export default function Reissue() {
         return;
       }
 
-      alert("Service added successfully!");
-
       if (uploadedFiles.length > 0) {
         const formDataFile = new FormData();
         uploadedFiles.forEach((file) => {
@@ -1065,7 +1063,7 @@ export default function Reissue() {
             Close
           </Button>
           <Button variant="success" onClick={handleReissueSave}>
-            Save Reissue
+            Reissue
           </Button>
         </Modal.Footer>
       </Modal>
