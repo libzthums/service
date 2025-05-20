@@ -53,8 +53,7 @@ export default function TotalPage() {
           // Skip services outside the selected year
           if (start.getFullYear() > year || end.getFullYear() < year) return;
 
-          const groupKey =
-            item.serialNumber || item.contractNo || item.serviceID;
+          const groupKey = `${item.DeviceName}__${item.Location}`;
           const status = item.expireStatusName?.toLowerCase();
           if (status !== "issued" && status !== "expire in 3 months") return;
 
@@ -349,7 +348,7 @@ export default function TotalPage() {
       </div>
 
       <div className="mt-3">
-        <Table striped hover responsive size="lg">
+        <Table striped bordered hover responsive size="lg">
           <thead>
             <tr>
               <th style={{ textAlign: "center", minWidth: "200px" }}>

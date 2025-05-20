@@ -51,22 +51,8 @@ export default function Reissue() {
     Location: "",
   });
 
-  const [tempDeviceQuery, setTempDeviceQuery] = useState("");
-  const [tempSerialQuery, setTempSerialQuery] = useState("");
-  const [tempContractQuery, setTempContractQuery] = useState("");
-  const [tempDivisionQuery, setTempDivisionQuery] = useState("");
-  const [tempTotalPriceQuery, setTempTotalPriceQuery] = useState("");
-  const [tempPricePerMonthQuery, setTempPricePerMonthQuery] = useState("");
-  const [tempVendorNameQuery, setTempVendorNameQuery] = useState("");
-  const [tempDateOfIssueQuery, setTempDateOfIssueQuery] = useState("");
-  const [tempDateOfExpiredQuery, setTempDateOfExpiredQuery] = useState("");
-  const [tempPriceMin, setTempPriceMin] = useState("");
-  const [tempPriceMax, setTempPriceMax] = useState("");
-  const [tempBrand, setTempBrand] = useState("");
-  const [tempModel, setTempModel] = useState("");
-  const [tempType, setTempType] = useState("");
-  const [tempLocation, setTempLocation] = useState("");
   const [typeList, setTypeList] = useState([]);
+  const [tempFilters, setTempFilters] = useState({ ...filters });
 
   // File upload states
   const [selectedFile, setSelectedFile] = useState(null);
@@ -235,59 +221,31 @@ export default function Reissue() {
   };
 
   const handleClearFilters = () => {
-    setFilters({
-      deviceQuery: "",
-      serialQuery: "",
-      contractQuery: "",
+    const clearedFilters = {
       divisionQuery: "",
       totalPriceQuery: "",
       pricePerMonthQuery: "",
       vendorNameQuery: "",
       dateOfIssueQuery: "",
       dateOfExpiredQuery: "",
+      statusQuery: "",
       priceMin: "",
       priceMax: "",
-      Brand: "",
-      Model: "",
-      Type: "",
-      Location: "",
-    });
-    setTempDeviceQuery("");
-    setTempSerialQuery("");
-    setTempContractQuery("");
-    setTempDivisionQuery("");
-    setTempTotalPriceQuery("");
-    setTempPricePerMonthQuery("");
-    setTempVendorNameQuery("");
-    setTempDateOfIssueQuery("");
-    setTempDateOfExpiredQuery("");
-    setTempPriceMin("");
-    setTempPriceMax("");
-    setTempBrand("");
-    setTempModel("");
-    setTempType("");
-    setTempLocation("");
+      deviceQuery: "",
+      serialQuery: "",
+      contractQuery: "",
+      brandQuery: "",
+      modelQuery: "",
+      typeQuery: "",
+      locationQuery: "",
+    };
+    setFilters(clearedFilters);
+    setTempFilters(clearedFilters);
   };
 
   const handleApplyFilters = () => {
-    setFilters({
-      deviceQuery: tempDeviceQuery,
-      serialQuery: tempSerialQuery,
-      contractQuery: tempContractQuery,
-      divisionQuery: tempDivisionQuery,
-      totalPriceQuery: tempTotalPriceQuery,
-      pricePerMonthQuery: tempPricePerMonthQuery,
-      vendorNameQuery: tempVendorNameQuery,
-      dateOfIssueQuery: tempDateOfIssueQuery,
-      dateOfExpiredQuery: tempDateOfExpiredQuery,
-      priceMin: tempPriceMin,
-      priceMax: tempPriceMax,
-      Brand: tempBrand,
-      Model: tempModel,
-      Type: tempType,
-      Location: tempLocation,
-    });
-    setShowFilterModal(false);
+    setFilters(tempFilters); // Apply temporary filters
+    setShowFilterModal(false); // Close the modal
   };
 
   // Format date
@@ -440,8 +398,8 @@ export default function Reissue() {
     if (editData.Model) updatedData.Model = editData.Model;
     if (editData.Type) updatedData.Type = editData.Type;
     if (editData.Location) updatedData.Location = editData.Location;
-
     // Only send the fields that are provided (non-empty)
+
     axios
       .put(url + `service/updatedata/${editData.serviceID}`, updatedData)
       .then((response) => {
@@ -474,9 +432,19 @@ export default function Reissue() {
         Location: reissueData.Location,
       };
 
-      await axios.post(url + `service/insertdata`, updatedData);
+      const response = await axios.post(
+        url + "service/insertdata",
+        updatedData
+      );
+      const serviceID = response.data.serviceID; // Capture the serviceID from the response
 
-      // Submit uploaded files
+      if (!serviceID) {
+        alert("Failed to create service. Please try again.");
+        return;
+      }
+
+      alert("Service added successfully!");
+
       if (uploadedFiles.length > 0) {
         const formDataFile = new FormData();
         uploadedFiles.forEach((file) => {
@@ -484,8 +452,13 @@ export default function Reissue() {
         });
         const fileTypes = uploadedFiles.map((file) => file.type);
         formDataFile.append("fileTypes", JSON.stringify(fileTypes));
+        formDataFile.append("serviceID", serviceID);
 
-        await axios.post(url + "service/insertdoc", formDataFile);
+        await axios.post(url + "service/insertdoc", formDataFile, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
       }
 
       alert("Reissue completed successfully!");
@@ -1108,43 +1081,73 @@ export default function Reissue() {
               <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="Description"
-                  value={tempDeviceQuery}
-                  onChange={(e) => setTempDeviceQuery(e.target.value)}
+                  value={tempFilters.deviceQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      deviceQuery: e.target.value,
+                    })
+                  }
                 />
               </Col>
               <Col md={6} className="mb-3" />
               <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="S/N"
-                  value={tempSerialQuery}
-                  onChange={(e) => setTempSerialQuery(e.target.value)}
+                  value={tempFilters.serialQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      serialQuery: e.target.value,
+                    })
+                  }
                 />
               </Col>
               <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="Contract No."
-                  value={tempContractQuery}
-                  onChange={(e) => setTempContractQuery(e.target.value)}
+                  value={tempFilters.contractQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      contractQuery: e.target.value,
+                    })
+                  }
                 />
               </Col>
               <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="Brand"
-                  value={tempBrand}
-                  onChange={(e) => setTempBrand(e.target.value)}
+                  value={tempFilters.brandQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      brandQuery: e.target.value,
+                    })
+                  }
                 />
               </Col>
               <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="Model"
-                  value={tempModel}
-                  onChange={(e) => setTempModel(e.target.value)}
+                  value={tempFilters.modelQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      modelQuery: e.target.value,
+                    })
+                  }
                 />
               </Col>
               <Col md={6} className="mb-3">
                 <Form.Select
-                  value={tempType}
-                  onChange={(e) => setTempType(e.target.value)}>
+                  value={tempFilters.typeQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      typeQuery: e.target.value,
+                    })
+                  }>
                   <option value="">Select Type</option>
                   {typeList.map((type) => (
                     <option key={type.TypeId} value={type.TypeName}>
@@ -1156,38 +1159,57 @@ export default function Reissue() {
               <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="Location"
-                  value={tempLocation}
-                  onChange={(e) => setTempLocation(e.target.value)}
+                  value={tempFilters.locationQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      locationQuery: e.target.value,
+                    })
+                  }
                 />
               </Col>
               <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="Total Price"
-                  value={tempTotalPriceQuery}
-                  onChange={(e) => setTempTotalPriceQuery(e.target.value)}
+                  value={tempFilters.totalPriceQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      totalPriceQuery: e.target.value,
+                    })
+                  }
                 />
               </Col>
               <Col md={3} className="mb-3">
                 <FormControl
                   type="number"
                   placeholder="Min Price"
-                  value={tempPriceMin}
-                  onChange={(e) => setTempPriceMin(e.target.value)}
+                  value={tempFilters.priceMin}
+                  onChange={(e) =>
+                    setTempFilters({ ...tempFilters, priceMin: e.target.value })
+                  }
                 />
               </Col>
               <Col md={3} className="mb-3">
                 <FormControl
                   type="number"
                   placeholder="Max Price"
-                  value={tempPriceMax}
-                  onChange={(e) => setTempPriceMax(e.target.value)}
+                  value={tempFilters.priceMax}
+                  onChange={(e) =>
+                    setTempFilters({ ...tempFilters, priceMax: e.target.value })
+                  }
                 />
               </Col>
               <Col md={6} className="mb-3">
                 <FormControl
                   placeholder="Vendor"
-                  value={tempVendorNameQuery}
-                  onChange={(e) => setTempVendorNameQuery(e.target.value)}
+                  value={tempFilters.vendorNameQuery}
+                  onChange={(e) =>
+                    setTempFilters({
+                      ...tempFilters,
+                      vendorNameQuery: e.target.value,
+                    })
+                  }
                 />
               </Col>
               <Col md={6} className="mb-3" />
@@ -1197,8 +1219,13 @@ export default function Reissue() {
                   <FormControl
                     type="date"
                     placeholder="Date of Issue"
-                    value={tempDateOfIssueQuery}
-                    onChange={(e) => setTempDateOfIssueQuery(e.target.value)}
+                    value={tempFilters.dateOfIssueQuery}
+                    onChange={(e) =>
+                      setTempFilters({
+                        ...tempFilters,
+                        dateOfIssueQuery: e.target.value,
+                      })
+                    }
                   />
                 </Form.Group>
               </Col>
@@ -1208,8 +1235,13 @@ export default function Reissue() {
                   <FormControl
                     type="date"
                     placeholder="Date of Expired"
-                    value={tempDateOfExpiredQuery}
-                    onChange={(e) => setTempDateOfExpiredQuery(e.target.value)}
+                    value={tempFilters.dateOfExpiredQuery}
+                    onChange={(e) =>
+                      setTempFilters({
+                        ...tempFilters,
+                        dateOfExpiredQuery: e.target.value,
+                      })
+                    }
                   />
                 </Form.Group>
               </Col>

@@ -2,7 +2,7 @@ const db = require("../db/sql");
 const express = require("express");
 const router = express.Router();
 
-router.get("/docreader/:serviceID", async (req, res) => {
+router.get("/:serviceID", async (req, res) => {
   const { serviceID } = req.params;
 
   try {
@@ -41,7 +41,7 @@ router.get("/docreader/:serviceID", async (req, res) => {
 
     res.json({ ...groupedDocs, hasPR, hasPO, hasContract });
   } catch (error) {
-    console.error("Error fetching documents:", error);
+    console.log("Error fetching documents:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

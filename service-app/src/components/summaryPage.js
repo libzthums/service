@@ -74,8 +74,7 @@ export default function SummaryPage() {
           if (end.getFullYear() < minYear || start.getFullYear() > maxYear)
             return;
 
-          const groupKey =
-            item.serialNumber || item.contractNo || item.serviceID;
+          const groupKey = `${item.DeviceName}__${item.Location}`;
           const status = item.expireStatusName?.toLowerCase();
           if (status !== "issued" && status !== "expire in 3 months") return;
 

@@ -39,6 +39,7 @@ app.use("/api/docreader", docreader);
 app.use("/api/login", login);
 app.use("/register", registerroute);
 app.use("/api/userManage", userManage);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // app.use(express.static(path.join(__dirname, "..", "service-app", "build")));
 // app.get("*", (req, res) => {

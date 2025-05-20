@@ -50,17 +50,6 @@ export default function Main() {
     locationQuery: "",
   });
 
-  const [tempFilters, setTempFilters] = useState({ ...filters });
-  const [typeList, setTypeList] = useState([]);
-
-  const expireStatusOptions = [
-    { label: "All Status", value: "" },
-    { label: "Issued", value: "issued" },
-    { label: "Expire in 3 months", value: "expire in 3 months" },
-    { label: "Just Expired", value: "just expired" },
-    { label: "Expired", value: "expired" },
-  ];
-
   const handleClearFilters = () => {
     const clearedFilters = {
       divisionQuery: "",
@@ -89,6 +78,17 @@ export default function Main() {
     setShowFilterModal(false); // Close the modal
   };
 
+  const [tempFilters, setTempFilters] = useState({ ...filters });
+  const [typeList, setTypeList] = useState([]);
+
+  const expireStatusOptions = [
+    { label: "All Status", value: "" },
+    { label: "Issued", value: "issued" },
+    { label: "Expire in 3 months", value: "expire in 3 months" },
+    { label: "Just Expired", value: "just expired" },
+    { label: "Expired", value: "expired" },
+  ];
+
   const fetchData = useCallback(() => {
     axios
       .get(url + "service")
@@ -109,9 +109,15 @@ export default function Main() {
                 hasContract: docResponse.data.hasContract,
               };
             } catch (error) {
+              if (error.response && error.response.status === 404) {
+                // Expected: No documents for this service, so just return service without logging
+                return service;
+              }
+
+              // Unexpected error, log it
               console.error(
-                `Error fetching document indicators for serviceID ${service.serviceID}:`,
-                error
+                `Unexpected error for serviceID ${service.serviceID}:`,
+                error.message
               );
               return service;
             }
@@ -250,6 +256,10 @@ export default function Main() {
       headerName: "Price/Month",
       flex: 1,
       minWidth: 120,
+      renderCell: (params) => {
+        const value = parseFloat(params.value);
+        return isNaN(value) ? "0.00" : value.toFixed(2);
+      },
     },
     { field: "vendorName", headerName: "Vendor", flex: 1, minWidth: 120 },
     {
@@ -292,7 +302,7 @@ export default function Main() {
       field: "showdot",
       headerName: "",
       flex: 1,
-      minWidth: 80,
+      minWidth: 160,
       renderCell: (params) => (
         <div
           style={{
@@ -300,41 +310,52 @@ export default function Main() {
             height: "100%",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center", // Center horizontally
-            gap: "8px",
+            justifyContent: "center",
+            gap: "12px",
           }}>
-          {/* PR status circle */}
-          <div
-            title="PR"
-            style={{
-              width: "12px",
-              height: "12px",
-              borderRadius: "50%",
-              backgroundColor: params.row?.hasPR ? "#198754" : "#dc3545",
-            }}
-          />
+          {/* PR */}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <div
+              title="PR"
+              style={{
+                width: "12px",
+                height: "12px",
+                borderRadius: "50%",
+                backgroundColor: params.row?.hasPR ? "#198754" : "#dc3545",
+              }}
+            />
+            <span style={{ fontSize: "12px" }}>PR</span>
+          </div>
 
-          {/* PO status circle */}
-          <div
-            title="PO"
-            style={{
-              width: "12px",
-              height: "12px",
-              borderRadius: "50%",
-              backgroundColor: params.row?.hasPO ? "#198754" : "#dc3545",
-            }}
-          />
+          {/* PO */}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <div
+              title="PO"
+              style={{
+                width: "12px",
+                height: "12px",
+                borderRadius: "50%",
+                backgroundColor: params.row?.hasPO ? "#198754" : "#dc3545",
+              }}
+            />
+            <span style={{ fontSize: "12px" }}>PO</span>
+          </div>
 
-          {/* Contract status circle */}
-          <div
-            title="Contract"
-            style={{
-              width: "12px",
-              height: "12px",
-              borderRadius: "50%",
-              backgroundColor: params.row?.hasContract ? "#198754" : "#dc3545",
-            }}
-          />
+          {/* Contract */}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <div
+              title="Contract"
+              style={{
+                width: "12px",
+                height: "12px",
+                borderRadius: "50%",
+                backgroundColor: params.row?.hasContract
+                  ? "#198754"
+                  : "#dc3545",
+              }}
+            />
+            <span style={{ fontSize: "12px" }}>Contract</span>
+          </div>
         </div>
       ),
     },

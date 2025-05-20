@@ -8,30 +8,8 @@ const XLSX = require("xlsx");
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
-// Multer setup for file upload configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const { fileTypes } = req.body;
-
-    // Validate fileTypes
-    if (!fileTypes || fileTypes.length !== req.files.length) {
-      return cb(new Error("Mismatch between files and file types."), null);
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      return cb(new Error("File size exceeds the maximum limit of 5 MB."));
-    }
-
-    const fileType = file.type; // MIME type
-    if (fileType === "application/pdf") {
-      // Handle PDF files
-    } else if (
-      fileType ===
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ) {
-      // Handle Word documents
-    }
-
     const dirPath = path.join("uploads", "ServiceDocument");
 
     // Create directory if it doesn't exist
@@ -39,14 +17,29 @@ const storage = multer.diskStorage({
       fs.mkdirSync(dirPath, { recursive: true });
     }
 
-    cb(null, dirPath); // Save file in the appropriate directory based on fileType
+    cb(null, dirPath);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
+    cb(null, file.originalname);
   },
 });
 
-const upload = multer({ storage: storage }); // Initialize multer
+const upload = multer({
+  storage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+    ];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error("Only PDF and DOCX files are allowed."), false);
+    }
+
+    cb(null, true);
+  },
+});
 
 // Function to generate charge dates for each month
 const generateChargeDates = (startDate, endDate) => {
@@ -175,15 +168,19 @@ router.get("/", async (req, res) => {
 // INSERT new service
 router.post("/insertdata", async (req, res) => {
   try {
-    const dataArray = Array.isArray(req.body)
-      ? req.body
-      : Array.isArray(req.body.data)
-      ? req.body.data
-      : [req.body.data || req.body];
+    const getDataArray = (body) => {
+      if (Array.isArray(body)) return body;
+      if (Array.isArray(body.data)) return body.data;
+      return [body.data || body];
+    };
+
+    const dataArray = getDataArray(req.body);
 
     if (!dataArray || dataArray.length === 0) {
       return res.status(400).json({ error: "No data provided" });
     }
+
+    const insertedServiceIDs = [];
 
     for (const data of dataArray) {
       const {
@@ -200,6 +197,9 @@ router.post("/insertdata", async (req, res) => {
         Type,
         Location,
         WarrantyCount,
+        prFileName,
+        poFileName,
+        contractFileName,
       } = data;
 
       if (!DeviceName || !divisionID) {
@@ -258,17 +258,54 @@ router.post("/insertdata", async (req, res) => {
           `);
         }
 
-        res.status(201).json({
-          message: "Service and service details added successfully",
-          serviceID, // Include the serviceID in the response
-        });
+        // Insert into ServiceDocument if prFileName, poFileName, contractFileName are present
+        if (prFileName) {
+          const docReq = pool.request();
+          docReq.input("serviceID", db.sql.Int, serviceID);
+          docReq.input("DocName", db.sql.NVarChar, prFileName);
+          docReq.input("DocType", db.sql.NVarChar, "pr");
+          docReq.input("DocPath", db.sql.NVarChar, null);
+          await docReq.query(`
+            INSERT INTO ServiceDocument (serviceID, DocName, DocType, DocPath)
+            VALUES (@serviceID, @DocName, @DocType, @DocPath)
+          `);
+        }
+        if (poFileName) {
+          const docReq = pool.request();
+          docReq.input("serviceID", db.sql.Int, serviceID);
+          docReq.input("DocName", db.sql.NVarChar, poFileName);
+          docReq.input("DocType", db.sql.NVarChar, "po");
+          docReq.input("DocPath", db.sql.NVarChar, null);
+          await docReq.query(`
+            INSERT INTO ServiceDocument (serviceID, DocName, DocType, DocPath)
+            VALUES (@serviceID, @DocName, @DocType, @DocPath)
+          `);
+        }
+        if (contractFileName) {
+          const docReq = pool.request();
+          docReq.input("serviceID", db.sql.Int, serviceID);
+          docReq.input("DocName", db.sql.NVarChar, contractFileName);
+          docReq.input("DocType", db.sql.NVarChar, "contract");
+          docReq.input("DocPath", db.sql.NVarChar, null);
+          await docReq.query(`
+            INSERT INTO ServiceDocument (serviceID, DocName, DocType, DocPath)
+            VALUES (@serviceID, @DocName, @DocType, @DocPath)
+          `);
+        }
+
+        insertedServiceIDs.push(serviceID);
       } catch (queryError) {
-        console.error("SQL Query Error:", queryError); // Log SQL errors
+        console.error("SQL Query Error:", queryError);
         return res.status(500).json({ error: "Database query failed" });
       }
     }
+
+    res.status(201).json({
+      message: "Service and service details added successfully",
+      serviceID: insertedServiceIDs[0],
+    });
   } catch (error) {
-    console.error("Error inserting service:", error); // Log general errors
+    console.error("Error inserting service:", error);
     res.status(500).json({ error: "Database error" });
   }
 });
@@ -276,54 +313,41 @@ router.post("/insertdata", async (req, res) => {
 // POST route for file upload and linking to service
 router.post("/insertdoc", upload.array("files", 10), async (req, res) => {
   try {
-    // Ensure that files and fileTypes are present
     if (!req.files || req.files.length === 0) {
       return res.status(400).send("No files uploaded.");
     }
 
-    const serviceID = parseInt(req.body.serviceID);
-    let fileTypes;
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      const docName = file.originalname; // Use the uploaded file's name
 
-    try {
-      fileTypes = JSON.parse(req.body.fileTypes);
-    } catch (err) {
-      return res.status(400).send("Invalid fileTypes format.");
-    }
-
-    if (
-      !serviceID ||
-      !Array.isArray(fileTypes) ||
-      fileTypes.length !== req.files.length
-    ) {
-      return res.status(400).send("Missing or mismatched file data.");
-    }
-
-    // Extract file details and insert them into the ServiceDocument table
-    const files = req.files.map((file, index) => ({
-      serviceID, // Link the file to the serviceID
-      fileName: file.filename,
-      filePath: file.path,
-      docType: fileTypes[index], // Associate each file with its file type
-    }));
-
-    // Insert file metadata into the ServiceDocument table
-    const pool = await db.connectDB();
-    for (const file of files) {
-      const query = `
-        INSERT INTO ServiceDocument (serviceID, DocName, DocPath, DocType)
-        VALUES (@ServiceID, @FileName, @FilePath, @DocType)
+      // Find the ServiceDocument record with this DocName
+      const pool = await db.connectDB();
+      const checkQuery = `
+        SELECT * FROM ServiceDocument WHERE DocName = @DocName
       `;
+      const checkRequest = pool.request();
+      checkRequest.input("DocName", db.sql.NVarChar, docName);
+      const checkResult = await checkRequest.query(checkQuery);
 
-      const request = pool.request();
-      request.input("ServiceID", db.sql.Int, file.serviceID);
-      request.input("FileName", db.sql.NVarChar, file.fileName);
-      request.input("FilePath", db.sql.NVarChar, file.filePath);
-      request.input("DocType", db.sql.NVarChar, file.docType);
-
-      await request.query(query);
+      if (checkResult.recordset.length > 0) {
+        // Update the DocPath for the matched document
+        const updateQuery = `
+          UPDATE ServiceDocument
+          SET DocPath = @DocPath
+          WHERE DocName = @DocName
+        `;
+        const updateRequest = pool.request();
+        updateRequest.input("DocPath", db.sql.NVarChar, file.path);
+        updateRequest.input("DocName", db.sql.NVarChar, docName);
+        await updateRequest.query(updateQuery);
+      } else {
+      }
     }
 
-    res.status(200).send("Files uploaded and linked to service successfully.");
+    res
+      .status(200)
+      .send("Files uploaded and matched to ServiceDocument by DocName.");
   } catch (error) {
     console.error("Error uploading files:", error);
     res.status(500).send("Failed to upload files. Please try again.");

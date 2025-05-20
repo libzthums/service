@@ -85,6 +85,9 @@ export default function InsertDocData() {
             startDate: parseDate(row.startDate || row["Issue Date"]) || "",
             endDate: parseDate(row.endDate || row["Expire Date"]) || "",
             vendorName: row.vendorName || row["Vendor Name"] || "",
+            prFileName: row.prFileName || row["PR"] || "",
+            poFileName: row.poFileName || row["PO"] || "",
+            contractFileName: row.contractFileName || row["Contract"] || "",
           }));
 
           resolve(mappedData);
@@ -97,15 +100,13 @@ export default function InsertDocData() {
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitServiceData = async () => {
     if (uploading || !singleFile) return;
-
     setUploading(true);
 
     try {
       let dataToUpload = previewData;
 
-      // Parse Excel if user skipped preview
       if (!previewData) {
         dataToUpload = await parseExcelFile(singleFile);
         if (!dataToUpload || dataToUpload.length === 0) {
@@ -114,47 +115,39 @@ export default function InsertDocData() {
         }
       }
 
-      const serviceResponse = await axios.post(url + "service/insertdata", {
-        data: dataToUpload,
-      });
-
-      const serviceID = serviceResponse.data.serviceID;
-
-      if (!serviceID) {
-        alert("Failed to create service. Please try again.");
-        return;
-      }
-
-      if (multipleFiles.length > 0) {
-        const fileTypes = multipleFiles.map((file) => {
-          const name = file.name.toLowerCase();
-          if (name.includes("pr")) return "pr";
-          if (name.includes("po")) return "po";
-          if (name.includes("contract")) return "contract";
-          return "unknown";
-        });
-
-        const formData = new FormData();
-        multipleFiles.forEach((file) => formData.append("files", file));
-        formData.append("serviceID", serviceID);
-        formData.append("fileTypes", JSON.stringify(fileTypes));
-
-        await axios.post(url + "service/insertdoc", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-
-        alert("Files uploaded and linked to service successfully");
-      }
-
       alert("Service data saved successfully");
       setSingleFile(null);
       setPreviewData(null);
-      setMultipleFiles([]);
     } catch (err) {
       console.error("Error during submission:", err);
-      alert("An error occurred during submission");
+      alert("An error occurred while submitting service data");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSubmitDocuments = async () => {
+    if (multipleFiles.length === 0) {
+      alert("Please select at least one file to upload.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      multipleFiles.forEach((file) => formData.append("files", file));
+
+      await axios.post(url + "service/insertdoc", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      alert("Files uploaded and linked to service successfully");
+      setMultipleFiles([]);
+    } catch (err) {
+      console.error("Error during file upload:", err);
+      alert("An error occurred while uploading documents");
     } finally {
       setUploading(false);
     }
@@ -203,6 +196,12 @@ export default function InsertDocData() {
             onClick={handlePreview}
             disabled={uploading || !singleFile}>
             {uploading ? "Processing..." : "Preview"}
+          </button>
+          <button
+            className="btn btn-success"
+            onClick={handleSubmitServiceData}
+            disabled={uploading}>
+            {uploading ? "Saving Data..." : "Submit Data"}
           </button>
         </div>
         {singleFile && !previewData && (
@@ -253,12 +252,12 @@ export default function InsertDocData() {
           <input {...getInputProps()} />
           <p>Drag & Drop your files here, or click to select files</p>
         </div>
-        <div className="d-flex justify-content-center mt-3">
+        <div className="d-flex justify-content-center mt-3 gap-2">
           <button
             className="btn btn-primary"
-            onClick={handleSubmit}
+            onClick={handleSubmitDocuments}
             disabled={uploading}>
-            {uploading ? "Uploading..." : "Submit All"}
+            {uploading ? "Uploading Files..." : "Upload Documents"}
           </button>
         </div>
 
