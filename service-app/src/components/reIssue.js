@@ -413,67 +413,70 @@ export default function Reissue() {
       });
   };
 
-const handleReissueSave = async () => {
-  try {
-    // Submit reissue data
-    const updatedData = {
-      DeviceName: reissueData.DeviceName,
-      serialNumber: reissueData.serialNumber,
-      contractNo: reissueData.contractNo,
-      price: reissueData.price,
-      vendorName: reissueData.vendorName,
-      vendorPhone: reissueData.vendorPhone,
-      startDate: reissueData.startDate,
-      endDate: reissueData.endDate,
-      divisionID: reissueData.divisionID,
-      Brand: reissueData.Brand,
-      Model: reissueData.Model,
-      Type: reissueData.Type,
-      Location: reissueData.Location,
-      serviceID: reissueData.serviceID, // old serviceID
-    };
+  const handleReissueSave = async () => {
+    try {
+      // Submit reissue data
+      const updatedData = {
+        DeviceName: reissueData.DeviceName,
+        serialNumber: reissueData.serialNumber,
+        contractNo: reissueData.contractNo,
+        price: reissueData.price,
+        vendorName: reissueData.vendorName,
+        vendorPhone: reissueData.vendorPhone,
+        startDate: reissueData.startDate,
+        endDate: reissueData.endDate,
+        divisionID: reissueData.divisionID,
+        Brand: reissueData.Brand,
+        Model: reissueData.Model,
+        Type: reissueData.Type,
+        Location: reissueData.Location,
+        serviceID: reissueData.serviceID, // old serviceID
+      };
 
-    const response = await axios.post(url + "service/insertdata", updatedData);
-    const newServiceID = response.data.serviceID;
+      const response = await axios.post(
+        url + "service/insertdata",
+        updatedData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const newServiceID = response.data.serviceID;
 
-    if (!newServiceID) {
-      alert("Failed to create service. Please try again.");
-      return;
-    }
+      if (!newServiceID) {
+        alert("Failed to create service. Please try again.");
+        return;
+      }
 
-    // Notify backend about the reissue relation
-    await axios.post(url + "service/reIssue", {
-      oldServiceID: reissueData.serviceID,
-      newServiceID: newServiceID,
-    });
-
-    // Upload documents if any
-    if (uploadedFiles.length > 0) {
-      const formDataFile = new FormData();
-      uploadedFiles.forEach((file) => {
-        formDataFile.append("files", file.file);
+      // Notify backend about the reissue relation
+      await axios.post(url + "service/reIssue", {
+        oldServiceID: reissueData.serviceID,
+        newServiceID: newServiceID,
       });
-      const fileTypes = uploadedFiles.map((file) => file.type);
-      formDataFile.append("fileTypes", JSON.stringify(fileTypes));
-      formDataFile.append("serviceID", newServiceID);
 
-      await axios.post(url + "service/insertdoc", formDataFile, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      // Upload documents if any
+      if (uploadedFiles.length > 0) {
+        const formDataFile = new FormData();
+        uploadedFiles.forEach((file) => {
+          formDataFile.append("files", file.file);
+        });
+        const fileTypes = uploadedFiles.map((file) => file.type);
+        formDataFile.append("fileTypes", JSON.stringify(fileTypes));
+        formDataFile.append("serviceID", newServiceID);
+
+        await axios.post(url + "service/insertdoc", formDataFile);
+      }
+
+      alert("Reissue completed successfully!");
+      setShowReissueModal(false);
+      setUploadedFiles([]);
+      fetchData(); // Refresh grid
+    } catch (error) {
+      console.error("Error during reissue:", error);
+      alert("An error occurred. Please try again.");
     }
-
-    alert("Reissue completed successfully!");
-    setShowReissueModal(false);
-    setUploadedFiles([]);
-    fetchData(); // Refresh grid
-  } catch (error) {
-    console.error("Error during reissue:", error);
-    alert("An error occurred. Please try again.");
-  }
-};
-
+  };
 
   const [paginationModel, setPaginationModel] = useState({
     pageSize: 10,

@@ -115,9 +115,18 @@ export default function InsertDocData() {
         }
       }
 
-      alert("Service data saved successfully");
-      setSingleFile(null);
-      setPreviewData(null);
+      const response = await axios.post(
+        url + "service/insertdata",
+        dataToUpload
+      );
+
+      if (response.status === 200) {
+        alert("Service data saved successfully");
+        setSingleFile(null);
+        setPreviewData(null);
+      } else {
+        alert("Failed to save service data");
+      }
     } catch (err) {
       console.error("Error during submission:", err);
       alert("An error occurred while submitting service data");
@@ -137,11 +146,7 @@ export default function InsertDocData() {
       const formData = new FormData();
       multipleFiles.forEach((file) => formData.append("files", file));
 
-      await axios.post(url + "service/insertdoc", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await axios.post(url + "service/insertdoc", formData);
 
       alert("Files uploaded and linked to service successfully");
       setMultipleFiles([]);

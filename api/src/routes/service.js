@@ -321,7 +321,7 @@ router.post("/insertdoc", upload.array("files", 10), async (req, res) => {
 
     if (req.body.serviceID && req.body.fileTypes) {
       const serviceID = parseInt(req.body.serviceID);
-      const fileTypes = JSON.parse(req.body.fileTypes); // assumed to be a JSON string array
+      const fileTypes = JSON.parse(req.body.fileTypes);
 
       for (let i = 0; i < req.files.length; i++) {
         const file = req.files[i];

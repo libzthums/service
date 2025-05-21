@@ -96,11 +96,7 @@ export default function InsertData() {
         formDataFile.append("fileTypes", JSON.stringify(fileTypes));
         formDataFile.append("serviceID", serviceID);
 
-        await axios.post(url + "service/insertdoc", formDataFile, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        await axios.post(url + "service/insertdoc", formDataFile);
 
         alert("Files uploaded successfully!");
       }
