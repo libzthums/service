@@ -249,7 +249,7 @@ export default function InsertData() {
 
           <div className="col-md-6 mb-1">
             <label>
-              Contract No. <span style={{ color: "red" }}>*</span>
+              Contract No.
             </label>
             <input
               type="text"
@@ -257,7 +257,6 @@ export default function InsertData() {
               name="contractNo"
               value={formData.contractNo}
               onChange={handleChange}
-              required
               autoComplete="off"
             />
           </div>

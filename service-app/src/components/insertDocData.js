@@ -111,6 +111,7 @@ export default function InsertDocData() {
         dataToUpload = await parseExcelFile(singleFile);
         if (!dataToUpload || dataToUpload.length === 0) {
           alert("Excel file is empty or invalid");
+          setUploading(false);
           return;
         }
       }
@@ -120,12 +121,12 @@ export default function InsertDocData() {
         dataToUpload
       );
 
-      if (response.status === 200) {
+      if (response.status === 200 || response.status === 201) {
         alert("Service data saved successfully");
         setSingleFile(null);
         setPreviewData(null);
       } else {
-        alert("Failed to save service data");
+        alert("Failed to save service data!!");
       }
     } catch (err) {
       console.error("Error during submission:", err);

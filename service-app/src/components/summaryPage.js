@@ -74,9 +74,7 @@ export default function SummaryPage() {
           if (end.getFullYear() < minYear || start.getFullYear() > maxYear)
             return;
 
-          const groupKey = `${item.DeviceName}__${item.Location}`;
-          const status = item.expireStatusName?.toLowerCase();
-          if (status !== "issued" && status !== "expire in 3 months") return;
+          const groupKey = `${item.DeviceName}__${item.Location}_${item.serialNumber}`;
 
           if (!grouped[groupKey]) {
             grouped[groupKey] = {
@@ -286,18 +284,34 @@ export default function SummaryPage() {
                   position: "sticky",
                   left: 0,
                   backgroundColor: "#fff",
-                  zIndex: 1,
+                  zIndex: 3,
                 }}>
                 Description
               </th>
-              {isAdmin && <th style={{ textAlign: "center" }}>Division</th>}
               <th
                 style={{
                   textAlign: "center",
+                  minWidth: "100px",
                   position: "sticky",
                   left: "250px",
                   backgroundColor: "#fff",
-                  zIndex: 1,
+                  zIndex: 3,
+                }}>
+                S/N
+              </th>
+              {isAdmin && (
+                <th style={{ textAlign: "center", minWidth: "100px" }}>
+                  Division
+                </th>
+              )}
+              <th
+                style={{
+                  textAlign: "center",
+                  minWidth: "70px",
+                  position: "sticky",
+                  left: "350px",
+                  backgroundColor: "#fff",
+                  zIndex: 3,
                 }}>
                 View
               </th>
@@ -331,12 +345,29 @@ export default function SummaryPage() {
                         }}>
                         {row.DeviceName}
                       </td>
-                      {isAdmin && <td>{row.divisionName}</td>}
+
                       <td
                         className="text-start"
                         style={{
                           position: "sticky",
                           left: "250px",
+                          backgroundColor: "#fff",
+                          zIndex: 2,
+                        }}>
+                        {row.serialNumber}
+                      </td>
+
+                      {isAdmin && (
+                        <td style={{ minWidth: "100px" }}>
+                          {row.divisionName}
+                        </td>
+                      )}
+
+                      <td
+                        className="text-start"
+                        style={{
+                          position: "sticky",
+                          left: "350px",
                           backgroundColor: "#fff",
                           zIndex: 2,
                         }}>
@@ -377,7 +408,7 @@ export default function SummaryPage() {
                 {/* Total Row */}
                 <tr className="text-center" style={{ fontWeight: "bold" }}>
                   <td
-                    colSpan={isAdmin ? 3 : 2}
+                    colSpan={isAdmin ? 4 : 3}
                     style={{
                       position: "sticky",
                       left: 0,

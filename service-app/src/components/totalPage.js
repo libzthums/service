@@ -53,9 +53,7 @@ export default function TotalPage() {
           // Skip services outside the selected year
           if (start.getFullYear() > year || end.getFullYear() < year) return;
 
-          const groupKey = `${item.DeviceName}__${item.Location}`;
-          const status = item.expireStatusName?.toLowerCase();
-          if (status !== "issued" && status !== "expire in 3 months") return;
+          const groupKey = `${item.DeviceName}__${item.Location}_${item.serialNumber}`;
 
           // Initialize group if needed
           if (!grouped[groupKey]) {
@@ -351,11 +349,47 @@ export default function TotalPage() {
         <Table striped bordered hover responsive size="lg">
           <thead>
             <tr>
-              <th style={{ textAlign: "center", minWidth: "200px" }}>
+              <th
+                style={{
+                  textAlign: "center",
+                  minWidth: "200px",
+                  position: "sticky",
+                  left: 0,
+                  background: "#fff",
+                  zIndex: 2,
+                }}>
                 Description
               </th>
-              {isAdmin && <th style={{ textAlign: "center" }}>Division</th>}
-              <th style={{ textAlign: "center" }}>View</th>
+              <th
+                style={{
+                  textAlign: "center",
+                  position: "sticky",
+                  left: 200, // must match minWidth of Description
+                  background: "#fff",
+                  zIndex: 2,
+                }}>
+                S/N
+              </th>
+              {isAdmin && (
+                <th
+                  style={{
+                    textAlign: "center",
+                    background: "#fff",
+                    zIndex: 1, // Not sticky
+                  }}>
+                  Division
+                </th>
+              )}
+              <th
+                style={{
+                  textAlign: "center",
+                  position: "sticky",
+                  left:  300, // adjust based on S/N width
+                  background: "#fff",
+                  zIndex: 2,
+                }}>
+                View
+              </th>
               {monthNames.map((month, i) => (
                 <th style={{ textAlign: "center", minWidth: "100px" }} key={i}>
                   {month}
@@ -377,9 +411,33 @@ export default function TotalPage() {
                   );
                   return (
                     <tr key={row.serviceID}>
-                      <td className="text-start">{row.DeviceName}</td>
+                      <td
+                        className="text-start"
+                        style={{
+                          position: "sticky",
+                          left: 0,
+                          background: "#fff",
+                          zIndex: 1,
+                        }}>
+                        {row.DeviceName}
+                      </td>
+                      <td
+                        style={{
+                          position: "sticky",
+                          left: 200,
+                          background: "#fff",
+                          zIndex: 1,
+                        }}>
+                        {row.serialNumber}
+                      </td>
                       {isAdmin && <td>{row.divisionName}</td>}
-                      <td>
+                      <td
+                        style={{
+                          position: "sticky",
+                          left: 300,
+                          background: "#fff",
+                          zIndex: 1,
+                        }}>
                         <Link to={`/docDetail/${row.serviceID}`}>
                           <Button variant="info" size="sm">
                             View
@@ -424,7 +482,16 @@ export default function TotalPage() {
 
                 {/* Monthly Totals Row */}
                 <tr className="text-center" style={{ fontWeight: "bold" }}>
-                  <td colSpan={isAdmin ? 3 : 2}>Total</td>
+                  <td
+                    colSpan={isAdmin ? 4 : 3}
+                    style={{
+                      position: "sticky",
+                      left: 0,
+                      backgroundColor: "#fff",
+                      zIndex: 2,
+                    }}>
+                    Total
+                  </td>
                   {Array.from({ length: 12 }, (_, monthIndex) => {
                     const monthlyTotal = filteredData.reduce((sum, row) => {
                       return row.warrantyMonths.includes(monthIndex)
