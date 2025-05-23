@@ -103,7 +103,7 @@ when the component mounts or when the `user` or `activeDivision` state changes. 
             )}
             <div style={{ marginTop: "35px" }}></div>
             <NavItem to="/" icon="fas fa-home" label="Dashboard" />
-            <NavItem to="/uploadPage" icon="fa fa-file" label="Upload" />
+            <NavItem to="/upload" icon="fa fa-file" label="Upload" />
             <li className={`nav-item ${isReissueOpen ? "menu-open" : ""}`}>
               <Button
                 href="#"
@@ -125,10 +125,10 @@ when the component mounts or when the `user` or `activeDivision` state changes. 
                 className={`nav nav-treeview ${
                   isReissueOpen ? "d-block" : "d-none"
                 }`}>
-                <NavItem to="/reissuePage" state={{ status: 1 }}>
+                <NavItem to="/reissue" state={{ status: 1 }}>
                   <span style={{ marginLeft: "34.5px" }}>Issued</span>
                 </NavItem>
-                <NavItem to="/reissuePage" state={{ status: 2 }}>
+                <NavItem to="/reissue" state={{ status: 2 }}>
                   <span style={{ marginLeft: "34.5px" }}>Expired Issue</span>
                 </NavItem>
               </ul>
@@ -154,10 +154,10 @@ when the component mounts or when the `user` or `activeDivision` state changes. 
                 className={`nav nav-treeview ${
                   isTotalOpen ? "d-block" : "d-none"
                 }`}>
-                <NavItem to="/totalPage" label="">
+                <NavItem to="/total" label="">
                   <span style={{ marginLeft: "34.5px" }}>Per year</span>
                 </NavItem>
-                <NavItem to="/summaryPage" label="">
+                <NavItem to="/summary" label="">
                   <span style={{ marginLeft: "34.5px" }}>Summary</span>
                 </NavItem>
               </ul>

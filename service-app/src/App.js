@@ -72,7 +72,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/totalPage"
+                path="/total"
                 element={
                   <ProtectedRoute>
                     <TotalPage />
@@ -80,7 +80,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/reissuePage"
+                path="/reissue"
                 element={
                   <ProtectedRoute>
                     <Reissue />
@@ -88,7 +88,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/uploadPage"
+                path="/upload"
                 element={
                   <ProtectedRoute>
                     <UploadPage />
@@ -96,7 +96,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/insertDocData"
+                path="/upload/excel"
                 element={
                   <ProtectedRoute>
                     <InsertDocData />
@@ -104,7 +104,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/docDetail/:serviceID"
+                path="/document/:serviceID"
                 element={
                   <ProtectedRoute>
                     <DocDetail />
@@ -112,7 +112,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/insert"
+                path="/upload/manual"
                 element={
                   <ProtectedRoute>
                     <InsertData />
@@ -128,7 +128,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/settingDivision"
+                path="/setting/division"
                 element={
                   <ProtectedRoute>
                     <SettingDivision />
@@ -136,7 +136,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/settingPermission"
+                path="/setting/permission"
                 element={
                   <ProtectedRoute>
                     <SettingPermission />
@@ -144,7 +144,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/settingType"
+                path="/setting/type"
                 element={
                   <ProtectedRoute>
                     <SettingType />
@@ -152,7 +152,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/summaryPage"
+                path="/summary"
                 element={
                   <ProtectedRoute>
                     <SummaryPage />

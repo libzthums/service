@@ -112,101 +112,6 @@ export default function TotalPage() {
       .catch((err) => console.error("Failed to fetch:", err));
   }, [url, year, isAdmin, activeDivision.id]);
 
-  // const exportToExcel = async () => {
-  //   const workbook = new ExcelJS.Workbook();
-  //   const worksheet = workbook.addWorksheet(`Total ${year}`);
-
-  //   // Header row
-  //   const header = ["Description", ...monthNames, "Total"];
-  //   worksheet.addRow(header);
-  //   worksheet.getRow(1).font = { bold: true };
-
-  //   // Data rows
-  //   filteredData.forEach((row) => {
-  //     const dataRow = [
-  //       row.DeviceName,
-  //       ...monthNames.map((_, i) =>
-  //         row.warrantyMonths.includes(i)
-  //           ? "On Warranty"
-  //           : row.monthlyCharges[i] > 0
-  //           ? row.monthlyCharges[i]
-  //           : "-"
-  //       ),
-  //       row.monthlyCharges.reduce(
-  //         (sum, charge, i) =>
-  //           row.warrantyMonths.includes(i) ? sum : sum + charge,
-  //         0
-  //       ),
-  //     ];
-  //     const addedRow = worksheet.addRow(dataRow);
-
-  //     // Style each cell in the row
-  //     dataRow.forEach((cell, i) => {
-  //       const cellRef = addedRow.getCell(i + 1);
-
-  //       // Currency format
-  //       if (typeof cell === "number" && i !== 0 && i !== dataRow.length - 1) {
-  //         cellRef.numFmt = '"฿"#,##0.00';
-  //       }
-
-  //       // Highlight "On Warranty"
-  //       if (cell === "On Warranty") {
-  //         cellRef.fill = {
-  //           type: "pattern",
-  //           pattern: "solid",
-  //           fgColor: { argb: "FFFFC000" }, // light yellow
-  //         };
-  //       }
-  //     });
-  //   });
-
-  //   // Total row
-  //   const totalRowValues = ["Total"];
-  //   for (let i = 0; i < 12; i++) {
-  //     const monthlyTotal = filteredData.reduce(
-  //       (sum, row) =>
-  //         row.warrantyMonths.includes(i) ? sum : sum + row.monthlyCharges[i],
-  //       0
-  //     );
-  //     totalRowValues.push(monthlyTotal > 0 ? monthlyTotal : "-");
-  //   }
-
-  //   const yearlyTotal = filteredData.reduce((sum, row) => {
-  //     return (
-  //       sum +
-  //       row.monthlyCharges.reduce(
-  //         (s, c, i) => (row.warrantyMonths.includes(i) ? s : s + c),
-  //         0
-  //       )
-  //     );
-  //   }, 0);
-
-  //   totalRowValues.push(yearlyTotal);
-  //   const totalRow = worksheet.addRow(totalRowValues);
-  //   totalRow.font = { bold: true };
-
-  //   // Format totals row cells
-  //   totalRow.eachCell((cell, colNumber) => {
-  //     if (typeof cell.value === "number") {
-  //       cell.numFmt = '"฿"#,##0.00';
-  //     }
-  //   });
-
-  //   // Auto width
-  //   worksheet.columns.forEach((col) => {
-  //     let maxLen = 12;
-  //     col.eachCell({ includeEmpty: true }, (cell) => {
-  //       const val = cell.value ? cell.value.toString() : "";
-  //       maxLen = Math.max(maxLen, val.length);
-  //     });
-  //     col.width = maxLen + 2;
-  //   });
-
-  //   // Export
-  //   const buffer = await workbook.xlsx.writeBuffer();
-  //   saveAs(new Blob([buffer]), `Service_Total_${year}.xlsx`);
-  // };
-
   const exportToExcelInRange = async () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(
@@ -450,7 +355,7 @@ export default function TotalPage() {
                           background: "#fff",
                           zIndex: 1,
                         }}>
-                        <Link to={`/docDetail/${row.serviceID}`}>
+                        <Link to={`/document/${row.serviceID}`}>
                           <Button variant="info" size="sm">
                             View
                           </Button>

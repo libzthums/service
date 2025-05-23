@@ -380,7 +380,7 @@ export default function SummaryPage() {
                           backgroundColor: "#fff",
                           zIndex: 2,
                         }}>
-                        <Link to={`/docDetail/${row.serviceID}`}>
+                        <Link to={`/document/${row.serviceID}`}>
                           <Button variant="info" size="sm">
                             View
                           </Button>
@@ -389,9 +389,19 @@ export default function SummaryPage() {
                       {monthRange.map(({ year, month }) => {
                         const key = `${year}-${month}`;
                         const charge = row.monthlyCharges[key];
+                        const isWarranty =
+                          Array.isArray(row.warrantyMonths) &&
+                          row.warrantyMonths.includes(month);
                         return (
-                          <td key={key} className="text-center">
-                            {charge
+                          <td
+                            key={key}
+                            className="text-center"
+                            style={
+                              isWarranty ? { backgroundColor: "#fff3cd" } : {}
+                            }>
+                            {isWarranty
+                              ? "On Warranty"
+                              : charge > 0
                               ? charge.toLocaleString("th-TH", {
                                   style: "currency",
                                   currency: "THB",

@@ -293,7 +293,7 @@ export default function Main() {
       flex: 1,
       minWidth: 80,
       renderCell: (params) => (
-        <Link to={`/docDetail/${params.row?.serviceID}`}>
+        <Link to={`/document/${params.row?.serviceID}`}>
           <Button variant="primary">View</Button>
         </Link>
       ),
