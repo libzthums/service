@@ -13,6 +13,16 @@ import { useUser } from "../context/userContext";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export default function SummaryPage() {
   const { url } = useContext(UrlContext);
   const { user, activeDivision } = useUser();
@@ -74,16 +84,34 @@ export default function SummaryPage() {
           if (end.getFullYear() < minYear || start.getFullYear() > maxYear)
             return;
 
-          const groupKey = `${item.DeviceName}__${item.Location}_${item.serialNumber}`;
+          const groupKey = `${item.DeviceName}_${item.Location}_${item.serialNumber}`;
 
           if (!grouped[groupKey]) {
             grouped[groupKey] = {
               ...item,
+              startDate: item.startDate,
+              endDate: item.endDate,
+              serviceID: item.serviceID,
               serviceIDs: [item.serviceID],
               monthlyCharges: {},
             };
           } else {
             grouped[groupKey].serviceIDs.push(item.serviceID);
+
+            const currentStart = new Date(grouped[groupKey].startDate);
+            const currentEnd = new Date(grouped[groupKey].endDate);
+            const newStart = new Date(item.startDate);
+            const newEnd = new Date(item.endDate);
+
+            // Update to latest dates
+            if (newStart > currentStart) {
+              grouped[groupKey].startDate = item.startDate;
+              grouped[groupKey].serviceID = item.serviceID;
+            }
+            if (newEnd > currentEnd) {
+              grouped[groupKey].endDate = item.endDate;
+              grouped[groupKey].serviceID = item.serviceID;
+            }
           }
 
           monthRange.forEach(({ year, month }) => {
@@ -288,17 +316,6 @@ export default function SummaryPage() {
                 }}>
                 Description
               </th>
-              <th
-                style={{
-                  textAlign: "center",
-                  minWidth: "100px",
-                  position: "sticky",
-                  left: "250px",
-                  backgroundColor: "#fff",
-                  zIndex: 3,
-                }}>
-                S/N
-              </th>
               {isAdmin && (
                 <th style={{ textAlign: "center", minWidth: "100px" }}>
                   Division
@@ -309,7 +326,7 @@ export default function SummaryPage() {
                   textAlign: "center",
                   minWidth: "70px",
                   position: "sticky",
-                  left: "350px",
+                  left: "250px",
                   backgroundColor: "#fff",
                   zIndex: 3,
                 }}>
@@ -343,18 +360,10 @@ export default function SummaryPage() {
                           backgroundColor: "#fff",
                           zIndex: 2,
                         }}>
-                        {row.DeviceName}
-                      </td>
-
-                      <td
-                        className="text-start"
-                        style={{
-                          position: "sticky",
-                          left: "250px",
-                          backgroundColor: "#fff",
-                          zIndex: 2,
-                        }}>
-                        {row.serialNumber}
+                        {row.DeviceName} {row.serialNumber}{" "}
+                        {`(${formatDate(row.startDate)}-${formatDate(
+                          row.endDate
+                        )})`}
                       </td>
 
                       {isAdmin && (
@@ -367,7 +376,7 @@ export default function SummaryPage() {
                         className="text-start"
                         style={{
                           position: "sticky",
-                          left: "350px",
+                          left: "250px",
                           backgroundColor: "#fff",
                           zIndex: 2,
                         }}>
@@ -408,7 +417,7 @@ export default function SummaryPage() {
                 {/* Total Row */}
                 <tr className="text-center" style={{ fontWeight: "bold" }}>
                   <td
-                    colSpan={isAdmin ? 4 : 3}
+                    colSpan={isAdmin ? 3 : 2}
                     style={{
                       position: "sticky",
                       left: 0,
