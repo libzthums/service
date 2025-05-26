@@ -18,8 +18,7 @@ export default function DocDetail() {
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
-        const response = await axios.get(`${url}docreader/${serviceID}`);
-
+        const response = await axios.get(`${url}document/${serviceID}`);
         setPrDocs(response.data.prDocs || []);
         setPoDocs(response.data.poDocs || []);
         setContractDocs(response.data.contractDocs || []);

@@ -36,7 +36,7 @@ app.use(express.static("public"));
 
 // API Routes
 app.use("/api/service", service);
-app.use("/api/docreader", docreader);
+app.use("/api/document", docreader);
 app.use("/api/login", login);
 app.use("/register", registerroute);
 app.use("/api/userManage", userManage);
