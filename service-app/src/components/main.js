@@ -36,8 +36,10 @@ export default function Main() {
     totalPriceQuery: "",
     pricePerMonthQuery: "",
     vendorNameQuery: "",
-    dateOfIssueQuery: "",
-    dateOfExpiredQuery: "",
+    dateOfIssueFrom: "",
+    dateOfIssueTo: "",
+    dateOfExpiredFrom: "",
+    dateOfExpiredTo: "",
     statusQuery: "",
     priceMin: "",
     priceMax: "",
@@ -56,8 +58,10 @@ export default function Main() {
       totalPriceQuery: "",
       pricePerMonthQuery: "",
       vendorNameQuery: "",
-      dateOfIssueQuery: "",
-      dateOfExpiredQuery: "",
+      dateOfIssueFrom: "",
+      dateOfIssueTo: "",
+      dateOfExpiredFrom: "",
+      dateOfExpiredTo: "",
       statusQuery: "",
       priceMin: "",
       priceMax: "",
@@ -144,15 +148,18 @@ export default function Main() {
       const matchesQuery = (field, query) =>
         field?.toLowerCase().includes(query.toLowerCase());
 
-      const matchesDate = (field, query) =>
-        query && !isNaN(new Date(query).getTime())
-          ? field?.includes(query)
-          : true;
-
       const matchesPriceRange = (price) => {
         const min = filters.priceMin ? parseFloat(filters.priceMin) : -Infinity;
         const max = filters.priceMax ? parseFloat(filters.priceMax) : Infinity;
         return price >= min && price <= max;
+      };
+
+      const isWithinMonthRange = (rowDate, from, to) => {
+        if (!rowDate) return false;
+        const rowMonth = rowDate.slice(0, 7); // "YYYY-MM"
+        if (from && rowMonth < from) return false;
+        if (to && rowMonth > to) return false;
+        return true;
       };
 
       return (
@@ -177,8 +184,8 @@ export default function Main() {
             .includes(filters.pricePerMonthQuery)) &&
         (!filters.vendorNameQuery ||
           matchesQuery(row.vendorName, filters.vendorNameQuery)) &&
-        matchesDate(row.startDate, filters.dateOfIssueQuery) &&
-        matchesDate(row.endDate, filters.dateOfExpiredQuery) &&
+        isWithinMonthRange(row.startDate, filters.dateOfIssueFrom, filters.dateOfIssueTo) &&
+        isWithinMonthRange(row.endDate, filters.dateOfExpiredFrom, filters.dateOfExpiredTo) &&
         (!filters.statusQuery ||
           row.expireStatusName?.toLowerCase() ===
             filters.statusQuery.toLowerCase()) &&
@@ -599,15 +606,31 @@ export default function Main() {
 
               <Col md={6} className="mb-3">
                 <FormGroup>
-                  <FormLabel>Date of Issue</FormLabel>
+                  <FormLabel>Date of Issue (From)</FormLabel>
                   <FormControl
-                    type="date"
+                    type="month"
                     placeholder="Date of Issue"
-                    value={tempFilters.dateOfIssueQuery}
+                    value={tempFilters.dateOfIssueFrom}
                     onChange={(e) =>
                       setTempFilters({
                         ...tempFilters,
-                        dateOfIssueQuery: e.target.value,
+                        dateOfIssueFrom: e.target.value,
+                      })
+                    }
+                  />
+                </FormGroup>
+              </Col>
+              <Col md={6} className="mb-3">
+                <FormGroup>
+                  <FormLabel>Date of Issue (To)</FormLabel>
+                  <FormControl
+                    type="month"
+                    placeholder="Date of Issue"
+                    value={tempFilters.dateOfIssueTo}
+                    onChange={(e) =>
+                      setTempFilters({
+                        ...tempFilters,
+                        dateOfIssueTo: e.target.value,
                       })
                     }
                   />
@@ -616,15 +639,31 @@ export default function Main() {
 
               <Col md={6} className="mb-3">
                 <FormGroup>
-                  <FormLabel>Date of Expired</FormLabel>
+                  <FormLabel>Date of Expired (From)</FormLabel>
                   <FormControl
-                    type="date"
+                    type="month"
                     placeholder="Date of Expired"
-                    value={tempFilters.dateOfExpiredQuery}
+                    value={tempFilters.dateOfExpiredFrom}
                     onChange={(e) =>
                       setTempFilters({
                         ...tempFilters,
-                        dateOfExpiredQuery: e.target.value,
+                        dateOfExpiredFrom: e.target.value,
+                      })
+                    }
+                  />
+                </FormGroup>
+              </Col>
+              <Col md={6} className="mb-3">
+                <FormGroup>
+                  <FormLabel>Date of Expired (To)</FormLabel>
+                  <FormControl
+                    type="month"
+                    placeholder="Date of Expired"
+                    value={tempFilters.dateOfExpiredTo}
+                    onChange={(e) =>
+                      setTempFilters({
+                        ...tempFilters,
+                        dateOfExpiredTo: e.target.value,
                       })
                     }
                   />
