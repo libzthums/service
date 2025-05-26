@@ -336,7 +336,7 @@ export default function Reissue() {
 
         return (
           <div className="d-flex flex-wrap gap-1">
-            <Link to={`/document/${params.row?.serviceID}`}>
+            <Link to={`/service/document/${params.row?.serviceID}`}>
               <Button size="sm" variant="info">
                 View
               </Button>

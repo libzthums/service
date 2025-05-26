@@ -355,7 +355,7 @@ export default function TotalPage() {
                           background: "#fff",
                           zIndex: 1,
                         }}>
-                        <Link to={`/document/${row.serviceID}`}>
+                        <Link to={`/service/document/${row.serviceID}`}>
                           <Button variant="info" size="sm">
                             View
                           </Button>

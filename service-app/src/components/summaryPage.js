@@ -380,7 +380,7 @@ export default function SummaryPage() {
                           backgroundColor: "#fff",
                           zIndex: 2,
                         }}>
-                        <Link to={`/document/${row.serviceID}`}>
+                        <Link to={`/service/document/${row.serviceID}`}>
                           <Button variant="info" size="sm">
                             View
                           </Button>
