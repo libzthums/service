@@ -144,9 +144,14 @@ export default function Main() {
         ? data
         : data.filter((item) => item.divisionID === activeDivision.id);
 
-    return visibleData.filter((row) => {
+    return visibleData.filter((item) => {
+
       const matchesQuery = (field, query) =>
-        field?.toLowerCase().includes(query.toLowerCase());
+        (field ?? "")
+          .toString()
+          .toLowerCase()
+          .trim()
+          .includes(query.toLowerCase().trim());
 
       const matchesPriceRange = (price) => {
         const min = filters.priceMin ? parseFloat(filters.priceMin) : -Infinity;
@@ -164,37 +169,49 @@ export default function Main() {
 
       return (
         (!searchQuery ||
-          matchesQuery(row.DeviceName, searchQuery) ||
-          matchesQuery(row.serialNumber, searchQuery) ||
-          matchesQuery(row.contractNo, searchQuery) ||
-          matchesQuery(row.vendorName, searchQuery)) &&
+          matchesQuery(item.DeviceName, searchQuery) ||
+          matchesQuery(item.serialNumber, searchQuery) ||
+          matchesQuery(item.contractNo, searchQuery) ||
+          matchesQuery(item.vendorName, searchQuery) ||
+          matchesQuery(item.Location, searchQuery) ||
+          matchesQuery(item.Type, searchQuery) ||
+          matchesQuery(item.Brand, searchQuery) ||
+          matchesQuery(item.Model, searchQuery)) &&
         (!filters.deviceQuery ||
-          matchesQuery(row.DeviceName, filters.deviceQuery)) &&
+          matchesQuery(item.DeviceName, filters.deviceQuery)) &&
         (!filters.serialQuery ||
-          matchesQuery(row.serialNumber, filters.serialQuery)) &&
+          matchesQuery(item.serialNumber, filters.serialQuery)) &&
         (!filters.contractQuery ||
-          matchesQuery(row.contractNo, filters.contractQuery)) &&
+          matchesQuery(item.contractNo, filters.contractQuery)) &&
         (!filters.divisionQuery ||
-          matchesQuery(row.divisionName, filters.divisionQuery)) &&
+          matchesQuery(item.divisionName, filters.divisionQuery)) &&
         (!filters.totalPriceQuery ||
-          row.price?.toString().includes(filters.totalPriceQuery)) &&
+          item.price?.toString().includes(filters.totalPriceQuery)) &&
         (!filters.pricePerMonthQuery ||
-          row.monthly_charge
+          item.monthly_charge
             ?.toString()
             .includes(filters.pricePerMonthQuery)) &&
         (!filters.vendorNameQuery ||
-          matchesQuery(row.vendorName, filters.vendorNameQuery)) &&
-        isWithinMonthRange(row.startDate, filters.dateOfIssueFrom, filters.dateOfIssueTo) &&
-        isWithinMonthRange(row.endDate, filters.dateOfExpiredFrom, filters.dateOfExpiredTo) &&
+          matchesQuery(item.vendorName, filters.vendorNameQuery)) &&
+        isWithinMonthRange(
+          item.startDate,
+          filters.dateOfIssueFrom,
+          filters.dateOfIssueTo
+        ) &&
+        isWithinMonthRange(
+          item.endDate,
+          filters.dateOfExpiredFrom,
+          filters.dateOfExpiredTo
+        ) &&
         (!filters.statusQuery ||
-          row.expireStatusName?.toLowerCase() ===
+          item.expireStatusName?.toLowerCase() ===
             filters.statusQuery.toLowerCase()) &&
-        matchesPriceRange(parseFloat(row.price)) &&
-        (!filters.brandQuery || matchesQuery(row.Brand, filters.brandQuery)) &&
-        (!filters.modelQuery || matchesQuery(row.Model, filters.modelQuery)) &&
-        (!filters.typeQuery || matchesQuery(row.Type, filters.typeQuery)) &&
+        matchesPriceRange(parseFloat(item.price)) &&
+        (!filters.brandQuery || matchesQuery(item.Brand, filters.brandQuery)) &&
+        (!filters.modelQuery || matchesQuery(item.Model, filters.modelQuery)) &&
+        (!filters.typeQuery || matchesQuery(item.Type, filters.typeQuery)) &&
         (!filters.locationQuery ||
-          matchesQuery(row.Location, filters.locationQuery))
+          matchesQuery(item.Location, filters.locationQuery))
       );
     });
   }, [data, activeDivision, searchQuery, user.permissionCode, filters]);

@@ -341,7 +341,6 @@ export default function InsertData() {
               name="vendorName"
               value={formData.vendorName}
               onChange={handleChange}
-              autoComplete="off"
               required
             />
           </div>

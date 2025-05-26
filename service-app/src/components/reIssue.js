@@ -123,8 +123,12 @@ export default function Reissue() {
     const isAdminOrManager =
       user.permissionCode === 2 || user.permissionCode === 3;
 
-    const matchesQuery = (field, query) =>
-      field?.toLowerCase().includes(query.toLowerCase());
+      const matchesQuery = (field, query) =>
+        (field ?? "")
+          .toString()
+          .toLowerCase()
+          .trim()
+          .includes(query.toLowerCase().trim());
 
     const isWithinMonthRange = (rowDate, from, to) => {
       if (!rowDate) return false;
@@ -161,7 +165,10 @@ export default function Reissue() {
         matchesQuery(item.serialNumber, lowerSearch) ||
         matchesQuery(item.contractNo, lowerSearch) ||
         matchesQuery(item.vendorName, lowerSearch) ||
-        matchesQuery(item.Type, lowerSearch);
+        matchesQuery(item.Location, lowerSearch) ||
+        matchesQuery(item.Type, lowerSearch) ||
+        matchesQuery(item.Brand, lowerSearch) ||
+        matchesQuery(item.Model, lowerSearch);
 
       const filterConditions = [
         !filters.deviceQuery ||
