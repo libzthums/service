@@ -248,9 +248,7 @@ export default function InsertData() {
           </div>
 
           <div className="col-md-6 mb-1">
-            <label>
-              Contract No.
-            </label>
+            <label>Contract No.</label>
             <input
               type="text"
               className="form-control"
@@ -342,7 +340,12 @@ export default function InsertData() {
               value={formData.vendorName}
               onChange={handleChange}
               required
+              list="vendorOption"
             />
+            <datalist id="vendorOption">
+              <option value="SDC" />
+              <option value="SCI" />
+            </datalist>
           </div>
 
           <div className="col-md-6 mb-1">
