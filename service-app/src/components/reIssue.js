@@ -7,6 +7,8 @@ import {
   Badge,
   InputGroup,
   FormControl,
+  FormLabel,
+  FormGroup,
   Modal,
   Form,
   Row,
@@ -41,8 +43,10 @@ export default function Reissue() {
     totalPriceQuery: "",
     pricePerMonthQuery: "",
     vendorNameQuery: "",
-    dateOfIssueQuery: "",
-    dateOfExpiredQuery: "",
+    dateOfIssueFrom: "",
+    dateOfIssueTo: "",
+    dateOfExpiredFrom: "",
+    dateOfExpiredTo: "",
     priceMin: "",
     priceMax: "",
     Brand: "",
@@ -119,13 +123,20 @@ export default function Reissue() {
     const isAdminOrManager =
       user.permissionCode === 2 || user.permissionCode === 3;
 
-    const matchesQuery = (field, query) =>
-      field?.toLowerCase().includes(query.toLowerCase());
+      const matchesQuery = (field, query) =>
+        (field ?? "")
+          .toString()
+          .toLowerCase()
+          .trim()
+          .includes(query.toLowerCase().trim());
 
-    const matchesDate = (field, query) =>
-      query && !isNaN(new Date(query).getTime())
-        ? field?.includes(query)
-        : true;
+    const isWithinMonthRange = (rowDate, from, to) => {
+      if (!rowDate) return false;
+      const rowMonth = rowDate.slice(0, 7); // "YYYY-MM"
+      if (from && rowMonth < from) return false;
+      if (to && rowMonth > to) return false;
+      return true;
+    };
 
     const matchesPriceRange = (price) => {
       const min = filters.priceMin ? parseFloat(filters.priceMin) : -Infinity;
@@ -154,7 +165,10 @@ export default function Reissue() {
         matchesQuery(item.serialNumber, lowerSearch) ||
         matchesQuery(item.contractNo, lowerSearch) ||
         matchesQuery(item.vendorName, lowerSearch) ||
-        matchesQuery(item.Type, lowerSearch);
+        matchesQuery(item.Location, lowerSearch) ||
+        matchesQuery(item.Type, lowerSearch) ||
+        matchesQuery(item.Brand, lowerSearch) ||
+        matchesQuery(item.Model, lowerSearch);
 
       const filterConditions = [
         !filters.deviceQuery ||
@@ -171,9 +185,17 @@ export default function Reissue() {
           item.monthly_charge?.toString().includes(filters.pricePerMonthQuery),
         !filters.vendorNameQuery ||
           matchesQuery(item.vendorName, filters.vendorNameQuery),
-        matchesDate(item.startDate, filters.dateOfIssueQuery),
-        matchesDate(item.endDate, filters.dateOfExpiredQuery),
-        matchesPriceRange(parseFloat(item.monthly_charge)),
+        isWithinMonthRange(
+          item.startDate,
+          filters.dateOfIssueFrom,
+          filters.dateOfIssueTo
+        ) &&
+          isWithinMonthRange(
+            item.endDate,
+            filters.dateOfExpiredFrom,
+            filters.dateOfExpiredTo
+          ) &&
+          matchesPriceRange(parseFloat(item.monthly_charge)),
         !filters.Brand || matchesQuery(item.Brand, filters.Brand),
         !filters.Model || matchesQuery(item.Model, filters.Model),
         !filters.Type || matchesQuery(item.Type, filters.Type),
@@ -226,8 +248,10 @@ export default function Reissue() {
       totalPriceQuery: "",
       pricePerMonthQuery: "",
       vendorNameQuery: "",
-      dateOfIssueQuery: "",
-      dateOfExpiredQuery: "",
+      dateOfIssueFrom: "",
+      dateOfIssueTo: "",
+      dateOfExpiredFrom: "",
+      dateOfExpiredTo: "",
       statusQuery: "",
       priceMin: "",
       priceMax: "",
@@ -1221,36 +1245,69 @@ export default function Reissue() {
               </Col>
               <Col md={6} className="mb-3" />
               <Col md={6} className="mb-3">
-                <Form.Group controlId="formDateOfIssue">
-                  <Form.Label>Date of Issue</Form.Label>
+                <FormGroup>
+                  <FormLabel>Date of Issue (From)</FormLabel>
                   <FormControl
-                    type="date"
+                    type="month"
                     placeholder="Date of Issue"
-                    value={tempFilters.dateOfIssueQuery}
+                    value={tempFilters.dateOfIssueFrom}
                     onChange={(e) =>
                       setTempFilters({
                         ...tempFilters,
-                        dateOfIssueQuery: e.target.value,
+                        dateOfIssueFrom: e.target.value,
                       })
                     }
                   />
-                </Form.Group>
+                </FormGroup>
               </Col>
               <Col md={6} className="mb-3">
-                <Form.Group controlId="formDateOfExpired">
-                  <Form.Label>Date of Expired</Form.Label>
+                <FormGroup>
+                  <FormLabel>Date of Issue (To)</FormLabel>
                   <FormControl
-                    type="date"
-                    placeholder="Date of Expired"
-                    value={tempFilters.dateOfExpiredQuery}
+                    type="month"
+                    placeholder="Date of Issue"
+                    value={tempFilters.dateOfIssueTo}
                     onChange={(e) =>
                       setTempFilters({
                         ...tempFilters,
-                        dateOfExpiredQuery: e.target.value,
+                        dateOfIssueTo: e.target.value,
                       })
                     }
                   />
-                </Form.Group>
+                </FormGroup>
+              </Col>
+
+              <Col md={6} className="mb-3">
+                <FormGroup>
+                  <FormLabel>Date of Expired (From)</FormLabel>
+                  <FormControl
+                    type="month"
+                    placeholder="Date of Expired"
+                    value={tempFilters.dateOfExpiredFrom}
+                    onChange={(e) =>
+                      setTempFilters({
+                        ...tempFilters,
+                        dateOfExpiredFrom: e.target.value,
+                      })
+                    }
+                  />
+                </FormGroup>
+              </Col>
+              <Col md={6} className="mb-3">
+                <FormGroup>
+                  <FormLabel>Date of Expired (To)</FormLabel>
+                  <FormControl
+                    type="month"
+                    placeholder="Date of Expired"
+                    value={tempFilters.dateOfExpiredTo}
+                    onChange={(e) =>
+                      setTempFilters({
+                        ...tempFilters,
+                        dateOfExpiredTo: e.target.value,
+                      })
+                    }
+                  />
+                </FormGroup>
               </Col>
             </Row>
           </Form>

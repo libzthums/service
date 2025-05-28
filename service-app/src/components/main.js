@@ -36,8 +36,10 @@ export default function Main() {
     totalPriceQuery: "",
     pricePerMonthQuery: "",
     vendorNameQuery: "",
-    dateOfIssueQuery: "",
-    dateOfExpiredQuery: "",
+    dateOfIssueFrom: "",
+    dateOfIssueTo: "",
+    dateOfExpiredFrom: "",
+    dateOfExpiredTo: "",
     statusQuery: "",
     priceMin: "",
     priceMax: "",
@@ -56,8 +58,10 @@ export default function Main() {
       totalPriceQuery: "",
       pricePerMonthQuery: "",
       vendorNameQuery: "",
-      dateOfIssueQuery: "",
-      dateOfExpiredQuery: "",
+      dateOfIssueFrom: "",
+      dateOfIssueTo: "",
+      dateOfExpiredFrom: "",
+      dateOfExpiredTo: "",
       statusQuery: "",
       priceMin: "",
       priceMax: "",
@@ -140,14 +144,14 @@ export default function Main() {
         ? data
         : data.filter((item) => item.divisionID === activeDivision.id);
 
-    return visibleData.filter((row) => {
-      const matchesQuery = (field, query) =>
-        field?.toLowerCase().includes(query.toLowerCase());
+    return visibleData.filter((item) => {
 
-      const matchesDate = (field, query) =>
-        query && !isNaN(new Date(query).getTime())
-          ? field?.includes(query)
-          : true;
+      const matchesQuery = (field, query) =>
+        (field ?? "")
+          .toString()
+          .toLowerCase()
+          .trim()
+          .includes(query.toLowerCase().trim());
 
       const matchesPriceRange = (price) => {
         const min = filters.priceMin ? parseFloat(filters.priceMin) : -Infinity;
@@ -155,39 +159,59 @@ export default function Main() {
         return price >= min && price <= max;
       };
 
+      const isWithinMonthRange = (rowDate, from, to) => {
+        if (!rowDate) return false;
+        const rowMonth = rowDate.slice(0, 7); // "YYYY-MM"
+        if (from && rowMonth < from) return false;
+        if (to && rowMonth > to) return false;
+        return true;
+      };
+
       return (
         (!searchQuery ||
-          matchesQuery(row.DeviceName, searchQuery) ||
-          matchesQuery(row.serialNumber, searchQuery) ||
-          matchesQuery(row.contractNo, searchQuery) ||
-          matchesQuery(row.vendorName, searchQuery)) &&
+          matchesQuery(item.DeviceName, searchQuery) ||
+          matchesQuery(item.serialNumber, searchQuery) ||
+          matchesQuery(item.contractNo, searchQuery) ||
+          matchesQuery(item.vendorName, searchQuery) ||
+          matchesQuery(item.Location, searchQuery) ||
+          matchesQuery(item.Type, searchQuery) ||
+          matchesQuery(item.Brand, searchQuery) ||
+          matchesQuery(item.Model, searchQuery)) &&
         (!filters.deviceQuery ||
-          matchesQuery(row.DeviceName, filters.deviceQuery)) &&
+          matchesQuery(item.DeviceName, filters.deviceQuery)) &&
         (!filters.serialQuery ||
-          matchesQuery(row.serialNumber, filters.serialQuery)) &&
+          matchesQuery(item.serialNumber, filters.serialQuery)) &&
         (!filters.contractQuery ||
-          matchesQuery(row.contractNo, filters.contractQuery)) &&
+          matchesQuery(item.contractNo, filters.contractQuery)) &&
         (!filters.divisionQuery ||
-          matchesQuery(row.divisionName, filters.divisionQuery)) &&
+          matchesQuery(item.divisionName, filters.divisionQuery)) &&
         (!filters.totalPriceQuery ||
-          row.price?.toString().includes(filters.totalPriceQuery)) &&
+          item.price?.toString().includes(filters.totalPriceQuery)) &&
         (!filters.pricePerMonthQuery ||
-          row.monthly_charge
+          item.monthly_charge
             ?.toString()
             .includes(filters.pricePerMonthQuery)) &&
         (!filters.vendorNameQuery ||
-          matchesQuery(row.vendorName, filters.vendorNameQuery)) &&
-        matchesDate(row.startDate, filters.dateOfIssueQuery) &&
-        matchesDate(row.endDate, filters.dateOfExpiredQuery) &&
+          matchesQuery(item.vendorName, filters.vendorNameQuery)) &&
+        isWithinMonthRange(
+          item.startDate,
+          filters.dateOfIssueFrom,
+          filters.dateOfIssueTo
+        ) &&
+        isWithinMonthRange(
+          item.endDate,
+          filters.dateOfExpiredFrom,
+          filters.dateOfExpiredTo
+        ) &&
         (!filters.statusQuery ||
-          row.expireStatusName?.toLowerCase() ===
+          item.expireStatusName?.toLowerCase() ===
             filters.statusQuery.toLowerCase()) &&
-        matchesPriceRange(parseFloat(row.price)) &&
-        (!filters.brandQuery || matchesQuery(row.Brand, filters.brandQuery)) &&
-        (!filters.modelQuery || matchesQuery(row.Model, filters.modelQuery)) &&
-        (!filters.typeQuery || matchesQuery(row.Type, filters.typeQuery)) &&
+        matchesPriceRange(parseFloat(item.price)) &&
+        (!filters.brandQuery || matchesQuery(item.Brand, filters.brandQuery)) &&
+        (!filters.modelQuery || matchesQuery(item.Model, filters.modelQuery)) &&
+        (!filters.typeQuery || matchesQuery(item.Type, filters.typeQuery)) &&
         (!filters.locationQuery ||
-          matchesQuery(row.Location, filters.locationQuery))
+          matchesQuery(item.Location, filters.locationQuery))
       );
     });
   }, [data, activeDivision, searchQuery, user.permissionCode, filters]);
@@ -599,15 +623,31 @@ export default function Main() {
 
               <Col md={6} className="mb-3">
                 <FormGroup>
-                  <FormLabel>Date of Issue</FormLabel>
+                  <FormLabel>Date of Issue (From)</FormLabel>
                   <FormControl
-                    type="date"
+                    type="month"
                     placeholder="Date of Issue"
-                    value={tempFilters.dateOfIssueQuery}
+                    value={tempFilters.dateOfIssueFrom}
                     onChange={(e) =>
                       setTempFilters({
                         ...tempFilters,
-                        dateOfIssueQuery: e.target.value,
+                        dateOfIssueFrom: e.target.value,
+                      })
+                    }
+                  />
+                </FormGroup>
+              </Col>
+              <Col md={6} className="mb-3">
+                <FormGroup>
+                  <FormLabel>Date of Issue (To)</FormLabel>
+                  <FormControl
+                    type="month"
+                    placeholder="Date of Issue"
+                    value={tempFilters.dateOfIssueTo}
+                    onChange={(e) =>
+                      setTempFilters({
+                        ...tempFilters,
+                        dateOfIssueTo: e.target.value,
                       })
                     }
                   />
@@ -616,15 +656,31 @@ export default function Main() {
 
               <Col md={6} className="mb-3">
                 <FormGroup>
-                  <FormLabel>Date of Expired</FormLabel>
+                  <FormLabel>Date of Expired (From)</FormLabel>
                   <FormControl
-                    type="date"
+                    type="month"
                     placeholder="Date of Expired"
-                    value={tempFilters.dateOfExpiredQuery}
+                    value={tempFilters.dateOfExpiredFrom}
                     onChange={(e) =>
                       setTempFilters({
                         ...tempFilters,
-                        dateOfExpiredQuery: e.target.value,
+                        dateOfExpiredFrom: e.target.value,
+                      })
+                    }
+                  />
+                </FormGroup>
+              </Col>
+              <Col md={6} className="mb-3">
+                <FormGroup>
+                  <FormLabel>Date of Expired (To)</FormLabel>
+                  <FormControl
+                    type="month"
+                    placeholder="Date of Expired"
+                    value={tempFilters.dateOfExpiredTo}
+                    onChange={(e) =>
+                      setTempFilters({
+                        ...tempFilters,
+                        dateOfExpiredTo: e.target.value,
                       })
                     }
                   />
