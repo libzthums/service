@@ -508,7 +508,7 @@ export default function Reissue() {
   });
 
   return (
-    <div className="container p-4">
+    <div className="container p-1">
       <h2>
         Reissue -{" "}
         {status === 1 ? "Issued" : status === 2 ? "Expire Issues" : ""}
@@ -1102,7 +1102,7 @@ export default function Reissue() {
       </Modal>
 
       {/* Filter Modal */}
-      <Modal show={showFilterModal} onHide={() => setShowFilterModal(false)}>
+      <Modal show={showFilterModal} onHide={() => setShowFilterModal(false)} size="lg" centered>
         <Modal.Header closeButton>
           <Modal.Title>Filter Options</Modal.Title>
         </Modal.Header>

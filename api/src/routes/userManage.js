@@ -10,7 +10,8 @@ router.get("/", async (req, res) => {
         ud.userID,
         ud.Name, 
         ud.Permission, 
-        udv.divisionID
+        udv.divisionID,
+        ud.defaultDivision
       FROM 
         userDetail ud
       INNER JOIN 
@@ -46,6 +47,7 @@ router.get("/", async (req, res) => {
           userID: user.userID,
           Name: user.Name,
           Permission: user.Permission,
+          defaultDivision: user.defaultDivision,
           divisions: [],
         };
       }
@@ -91,6 +93,73 @@ router.post("/addDivision", async (req, res) => {
   } catch (error) {
     console.error("Error adding division to user:", error);
     res.status(500).send("Error adding division to user");
+  }
+});
+
+router.post("/removeDivision", async (req, res) => {
+  const { userID, divisionID } = req.body;
+
+  if (!userID || !divisionID) {
+    return res.status(400).send("Missing userID or divisionID");
+  }
+
+  try {
+    const query = `
+      DELETE FROM userDivision
+      WHERE userID = @userID AND divisionID = @divisionID
+    `;
+
+    const pool = await connectDB();
+    await pool
+      .request()
+      .input("userID", userID)
+      .input("divisionID", divisionID)
+      .query(query);
+
+    res.status(200).send("User removed from division successfully");
+  } catch (error) {
+    console.error("Error removing user from division:", error);
+    res.status(500).send("Error removing user from division");
+  }
+});
+
+router.post("/setDefaultDivision", async (req, res) => {
+  const { userID, divisionID } = req.body;
+
+  if (!userID || !divisionID) {
+    return res.status(400).send("Missing userID or divisionID");
+  }
+
+  try {
+    const query = `
+      UPDATE userDetail
+      SET defaultDivision = @divisionID
+      WHERE userID = @userID
+    `;
+
+    const pool = await connectDB();
+    await pool
+      .request()
+      .input("userID", userID)
+      .input("divisionID", divisionID)
+      .query(query);
+
+    res.status(200).send("Default division set successfully");
+  } catch (error) {
+    console.error("Error setting default division:", error);
+    res.status(500).send("Error setting default division");
+  }
+});
+
+router.get("/Permission", async (req, res) => {
+  try {
+    const query = `SELECT PermissionID, PermissionName FROM userPermission`;
+    const result = await connectAndQuery(query);
+
+    res.json({ permissionList: result });
+  } catch (error) {
+    console.error("Error fetching user permissions:", error);
+    res.status(500).send("Error fetching user permissions");
   }
 });
 

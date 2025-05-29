@@ -296,13 +296,13 @@ export default function SummaryPage() {
   }, [startYear, endYear]);
 
   return (
-    <div className="container p-4">
+    <div className="container p-1">
       <h4>
         Total cost from Jan {startYear} to Dec {endYear}
       </h4>
 
       <div className="mt-3">
-        <Table striped bordered hover responsive>
+        <Table bordered hover responsive>
           <thead>
             <tr>
               <th

@@ -266,7 +266,7 @@ export default function TotalPage() {
   }, [fetchData]);
 
   return (
-    <div className="container p-4">
+    <div className="container p-1">
       <h4>Total cost per year in {year}</h4>
 
       <div className="d-flex justify-content-between align-items-center my-3">
@@ -279,7 +279,7 @@ export default function TotalPage() {
       </div>
 
       <div className="mt-3">
-        <Table striped bordered hover responsive size="lg">
+        <Table bordered hover responsive size="lg">
           <thead>
             <tr>
               <th

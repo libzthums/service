@@ -32,11 +32,11 @@ router.post("/", async (req, res) => {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    // Fetch user details (Name, Permission)
+    // Fetch user details (Name, Permission, defaultDivision)
     const detailResult = await pool
       .request()
       .input("userID", sql.Int, user.userID)
-      .query("SELECT Name, Permission FROM userDetail WHERE userID = @userID");
+      .query("SELECT Name, Permission, defaultDivision FROM userDetail WHERE userID = @userID");
 
     const detail = detailResult.recordset[0];
 
@@ -60,11 +60,9 @@ router.post("/", async (req, res) => {
     function getPermissionLabel(code) {
       switch (code) {
         case 1:
-          return "Viewer";
+          return "User";
         case 2:
           return "Admin";
-        case 3:
-          return "Manager";
         default:
           return "Unknown";
       }
@@ -85,6 +83,7 @@ router.post("/", async (req, res) => {
         name: detail?.Name,
         permission: getPermissionLabel(detail?.Permission),
         permissionCode: detail?.Permission,
+        defaultDivision: detail?.defaultDivision,
         divisionIDs: divisionIDs,
         divisionNames: divisionNames,
       },

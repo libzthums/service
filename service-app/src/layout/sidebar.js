@@ -12,26 +12,21 @@ export default function Sidebar() {
   const [isTotalOpen, setTotalOpen] = useState(false);
   const { user, activeDivision, setActiveDivision } = useUser();
 
-/* The `useEffect` hook in the provided code snippet is responsible for setting the active division
-when the component mounts or when the `user` or `activeDivision` state changes. */
-  useEffect(() => {
-    if (user?.divisionIDs?.length > 0 && !activeDivision) {
-      const defaultID = user.divisionIDs[0];
-      setActiveDivision({
-        id: defaultID,
-        name: user.divisionNames[0],
-      });
-      localStorage.setItem("activeDivisionID", defaultID); // Persist the default division
-    }
-  }, [user, activeDivision, setActiveDivision]);
+useEffect(() => {
+  if (user?.divisionIDs?.length > 0 && !activeDivision) {
+    // Try to use defaultDivision if present and valid
+    let defaultID = user.defaultDivision && user.divisionIDs.includes(user.defaultDivision)
+      ? user.defaultDivision
+      : user.divisionIDs[0];
+    const index = user.divisionIDs.indexOf(defaultID);
+    setActiveDivision({
+      id: defaultID,
+      name: user.divisionNames[index],
+    });
+    localStorage.setItem("activeDivisionID", defaultID); // Persist the default division
+  }
+}, [user, activeDivision, setActiveDivision]);
 
-/**
- * The function `handleDivisionChange` updates the active division based on the selected division ID
- * and persists the selection in local storage.
- * @param e - The parameter `e` in the `handleDivisionChange` function is typically an event object
- * that represents the event being handled, such as a change event on an input element. In this case,
- * it is used to extract the new value selected by the user from the event target.
- */
   const handleDivisionChange = (e) => {
     const newID = parseInt(e.target.value);
     const index = user.divisionIDs.indexOf(newID);
@@ -69,7 +64,7 @@ when the component mounts or when the `user` or `activeDivision` state changes. 
                   }}>
                   {user?.name}
                 </div>
-                {user?.permission !== "Admin" && user?.permission !== "Manager" && (
+                {user?.permission !== "Admin" && (
                   <Form.Select
                     value={activeDivision?.id}
                     onChange={handleDivisionChange}
@@ -87,7 +82,7 @@ when the component mounts or when the `user` or `activeDivision` state changes. 
                     ))}
                   </Form.Select>
                 )}
-                {user?.permission !== "Viewer" && (
+                {user?.permission !== "User" && (
                   <div
                     className="text-center mt-1"
                     style={{

@@ -340,6 +340,7 @@ export default function InsertData() {
               value={formData.vendorName}
               onChange={handleChange}
               required
+              autoComplete="off"
               list="vendorOption"
             />
             <datalist id="vendorOption">
