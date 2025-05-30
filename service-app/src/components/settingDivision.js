@@ -168,62 +168,64 @@ export default function SettingDivision() {
         {/* Division Tab */}
         <Tab eventKey="division" title="Division">
           <h5 className="fw-bold mb-3">Division List</h5>
-          <Table bordered>
-            <thead>
-              <tr>
-                <th>Division</th>
-                <th>Members</th>
-              </tr>
-            </thead>
-            <tbody>
-              {divisionList.map((division) => {
-                const members = userList.filter((user) =>
-                  user.divisions.some(
-                    (d) => d.divisionID === division.divisionID
-                  )
-                );
-                return (
-                  <tr key={division.divisionID}>
-                    <td>{division.divisionName}</td>
-                    <td>
-                      {members.length === 0 ? (
-                        <span className="text-muted">No members</span>
-                      ) : (
-                        members.map((user, idx) => (
-                          <span key={user.userID} className="me-2">
-                            {user.Name}
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              className="ms-1"
-                              onClick={() =>
-                                handleRemoveUserFromDivision(
-                                  user.userID,
-                                  division.divisionID
-                                )
-                              }>
-                              <i className="fas fa-minus"></i>
-                            </Button>
-                            {idx < members.length - 1 ? (
-                              <>
-                                <br />
-                              </>
-                            ) : null}
-                          </span>
-                        ))
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
+          <div style={{ overflowX: "auto", maxHeight: "400px" }}>
+            <Table bordered>
+              <thead>
+                <tr>
+                  <th>Division</th>
+                  <th>Members</th>
+                </tr>
+              </thead>
+              <tbody>
+                {divisionList.map((division) => {
+                  const members = userList.filter((user) =>
+                    user.divisions.some(
+                      (d) => d.divisionID === division.divisionID
+                    )
+                  );
+                  return (
+                    <tr key={division.divisionID}>
+                      <td>{division.divisionName}</td>
+                      <td>
+                        {members.length === 0 ? (
+                          <span className="text-muted">No members</span>
+                        ) : (
+                          members.map((user, idx) => (
+                            <span key={user.userID} className="me-2">
+                              {user.Name}
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                className="m-1"
+                                onClick={() =>
+                                  handleRemoveUserFromDivision(
+                                    user.userID,
+                                    division.divisionID
+                                  )
+                                }>
+                                <i className="fas fa-minus fa-xs"></i>
+                              </Button>
+                              {idx < members.length - 1 ? (
+                                <>
+                                  <br />
+                                </>
+                              ) : null}
+                            </span>
+                          ))
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          </div>
         </Tab>
 
         {/* User Tab */}
         <Tab eventKey="user" title="User">
           <h5 className="fw-bold mb-3">User List</h5>
-          <Table bordered hover>
+          <Table bordered>
             <thead>
               <tr>
                 <th>Username</th>

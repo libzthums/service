@@ -36,7 +36,7 @@ router.post("/", async (req, res) => {
     const detailResult = await pool
       .request()
       .input("userID", sql.Int, user.userID)
-      .query("SELECT Name, Permission, defaultDivision FROM userDetail WHERE userID = @userID");
+      .query("SELECT FullName, Permission, defaultDivision FROM userDetail WHERE userID = @userID");
 
     const detail = detailResult.recordset[0];
 
@@ -80,7 +80,7 @@ router.post("/", async (req, res) => {
       user: {
         id: user.userID,
         userName: user.userName,
-        name: detail?.Name,
+        name: detail?.FullName,
         permission: getPermissionLabel(detail?.Permission),
         permissionCode: detail?.Permission,
         defaultDivision: detail?.defaultDivision,

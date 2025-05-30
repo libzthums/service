@@ -8,7 +8,7 @@ router.get("/", async (req, res) => {
     const userQuery = `
       SELECT 
         ud.userID,
-        ud.Name, 
+        ud.FullName, 
         ud.Permission, 
         udv.divisionID,
         ud.defaultDivision
@@ -45,7 +45,7 @@ router.get("/", async (req, res) => {
       if (!usersMap[user.userID]) {
         usersMap[user.userID] = {
           userID: user.userID,
-          Name: user.Name,
+          Name: user.FullName,
           Permission: user.Permission,
           defaultDivision: user.defaultDivision,
           divisions: [],

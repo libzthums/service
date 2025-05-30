@@ -22,7 +22,6 @@ export default function Header() {
     setShowModal(false);
 
     navigate("/login");
-    window.location.reload();
   };
 
   const cancelLogout = () => {

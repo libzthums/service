@@ -1,6 +1,6 @@
 import { useUser } from "../context/userContext";
 import axios from "axios";
-import { useState, useContext, useEffect } from "react";
+import { useState, useContext } from "react";
 import { UrlContext } from "../router/route";
 import { useNavigate } from "react-router-dom";
 
@@ -12,20 +12,6 @@ const Login = () => {
   const [userName, setUserName] = useState("");
   const [userPassword, setUserPassword] = useState("");
 
-  useEffect(() => {
-    // Check if the page has already been refreshed
-    const hasRefreshed = sessionStorage.getItem("hasRefreshed");
-    if (!hasRefreshed) {
-      sessionStorage.setItem("hasRefreshed", "true");
-      window.location.reload();
-    }
-  }, []);
-
-/**
- * The function `handleLogin` is an asynchronous function that sends a POST request to a login
- * endpoint, stores the token and user data in local storage upon successful login, and navigates to
- * the home page, while displaying an alert if the login fails.
- */
   const handleLogin = async () => {
     try {
       const res = await axios.post(url + "login", {
@@ -72,7 +58,7 @@ const Login = () => {
             placeholder="Password"
             autoComplete="false"
           />
-          <button onClick={handleLogin} className="btn btn-primary w-100">
+          <button type="button" onClick={handleLogin} className="btn btn-primary w-100">
             Login
           </button>
         </div>

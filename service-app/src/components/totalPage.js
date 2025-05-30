@@ -318,6 +318,7 @@ export default function TotalPage() {
                   {month}
                 </th>
               ))}
+              <th style={{ textAlign: "center" }}>Total</th>
             </tr>
           </thead>
           <tbody>
