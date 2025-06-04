@@ -343,7 +343,7 @@ export default function TotalPage() {
                           background: "#fff",
                           zIndex: 1,
                         }}>
-                        {row.DeviceName} {row.serialNumber}{" "}
+                        {row.DeviceName} {row.serialNumber} <br></br>
                         {`(${formatDate(row.startDate)}-${formatDate(
                           row.endDate
                         )})`}

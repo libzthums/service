@@ -24,6 +24,7 @@ export default function Reissue() {
   const { url } = useContext(UrlContext);
   const location = useLocation();
   const status = location.state?.status || 1;
+  const fileInputRef = React.useRef(null);
 
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -55,6 +56,25 @@ export default function Reissue() {
     Location: "",
   });
 
+  const openFile = async (file, area) => {
+    console.log("area ", area);
+
+    try {
+      let res = await axios.get(url + "doc/open", {
+        params: {
+          fileName: encodeURIComponent(file),
+        },
+        responseType: "blob",
+      });
+      const pdfBlob = new Blob([res.data], { type: "application/pdf" });
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+
+      window.open(pdfUrl, "_blank");
+    } catch (error) {
+      alert(error);
+    }
+  };
+
   const [typeList, setTypeList] = useState([]);
   const [tempFilters, setTempFilters] = useState({ ...filters });
 
@@ -75,24 +95,20 @@ export default function Reissue() {
       alert("Please select a file and file type before uploading.");
       return;
     }
-
-    const formData = new FormData();
-    formData.append("files", selectedFile);
-    formData.append("fileTypes", JSON.stringify([fileType]));
-    formData.append("serviceID", editData.serviceID);
-
-    axios
-      .post(`${url}service/insertdoc`, formData)
-      .then(() => {
-        alert("File uploaded successfully!");
-        fetchDocuments(editData.serviceID); // Refresh document list
-        setSelectedFile(null);
-        setFileType("");
-      })
-      .catch((error) => {
-        console.error("Error uploading file:", error);
-        alert("Failed to upload file. Please try again.");
-      });
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      alert("File size exceeds the maximum limit of 5MB.");
+      return;
+    }
+    setUploadedFiles((prev) => [
+      ...prev,
+      { file: selectedFile, type: fileType },
+    ]);
+    setSelectedFile("");
+    setFileType("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleRemoveFile = (index) => {
@@ -123,12 +139,12 @@ export default function Reissue() {
     const isAdminOrManager =
       user.permissionCode === 2 || user.permissionCode === 3;
 
-      const matchesQuery = (field, query) =>
-        (field ?? "")
-          .toString()
-          .toLowerCase()
-          .trim()
-          .includes(query.toLowerCase().trim());
+    const matchesQuery = (field, query) =>
+      (field ?? "")
+        .toString()
+        .toLowerCase()
+        .trim()
+        .includes(query.toLowerCase().trim());
 
     const isWithinMonthRange = (rowDate, from, to) => {
       if (!rowDate) return false;
@@ -228,7 +244,7 @@ export default function Reissue() {
 
   const fetchDocuments = async (serviceID) => {
     try {
-      const response = await axios.get(`${url}docreader/${serviceID}`);
+      const response = await axios.get(`${url}document/${serviceID}`);
 
       setPrDocs(response.data.prDocs || []);
       setPoDocs(response.data.poDocs || []);
@@ -383,7 +399,7 @@ export default function Reissue() {
               </Button>
             </Link>
             {user.permission === "Admin" && (
-              <Link to="/#">
+              <Link>
                 <Button size="sm" variant="danger">
                   Delete
                 </Button>
@@ -414,7 +430,6 @@ export default function Reissue() {
     if (editData.contractNo) updatedData.contractNo = editData.contractNo;
     if (editData.price) updatedData.price = editData.price;
     if (editData.vendorName) updatedData.vendorName = editData.vendorName;
-    if (editData.vendorPhone) updatedData.vendorPhone = editData.vendorPhone;
     if (editData.startDate) updatedData.startDate = editData.startDate;
     if (editData.endDate) updatedData.endDate = editData.endDate;
     if (editData.divisionID) updatedData.divisionID = editData.divisionID;
@@ -426,10 +441,22 @@ export default function Reissue() {
 
     axios
       .put(url + `service/updatedata/${editData.serviceID}`, updatedData)
-      .then((response) => {
-        console.log("Data updated successfully", response);
+      .then(async (response) => {
+        if (uploadedFiles.length > 0) {
+          const formDataFile = new FormData();
+          uploadedFiles.forEach((file) => {
+            formDataFile.append("files", file.file);
+          });
+          const fileTypes = uploadedFiles.map((file) => file.type);
+          formDataFile.append("fileTypes", JSON.stringify(fileTypes));
+          formDataFile.append("serviceID", editData.serviceID);
+
+          await axios.post(url + "service/insertdoc", formDataFile);
+        }
         setShowEditModal(false);
-        fetchData(); // Refresh data after update
+        setUploadedFiles([]);
+        fetchData();
+        alert("Data updated successfully");
       })
       .catch((error) => {
         console.error("Error updating data:", error);
@@ -446,7 +473,6 @@ export default function Reissue() {
         contractNo: reissueData.contractNo,
         price: reissueData.price,
         vendorName: reissueData.vendorName,
-        vendorPhone: reissueData.vendorPhone,
         startDate: reissueData.startDate,
         endDate: reissueData.endDate,
         divisionID: reissueData.divisionID,
@@ -474,7 +500,7 @@ export default function Reissue() {
       }
 
       // Notify backend about the reissue relation
-      await axios.post(url + "service/reIssue", {
+      await axios.post(url + "reIssue", {
         oldServiceID: reissueData.serviceID,
         newServiceID: newServiceID,
       });
@@ -596,6 +622,7 @@ export default function Reissue() {
                           DeviceName: e.target.value,
                         })
                       }
+                      disabled
                     />
                   </Form.Group>
                 </Col>
@@ -629,6 +656,7 @@ export default function Reissue() {
                           serialNumber: e.target.value,
                         })
                       }
+                      disabled
                     />
                   </Form.Group>
                 </Col>
@@ -724,7 +752,13 @@ export default function Reissue() {
                       onChange={(e) =>
                         setEditData({ ...editData, vendorName: e.target.value })
                       }
+                      list="vendorOption"
                     />
+                    <datalist id="vendorOption">
+                      {/* {vendorAll.map((item, index) => (
+                        <option value={item.vendor_name} />
+                      ))} */}
+                    </datalist>
                   </Form.Group>
                 </Col>
               </Row>
@@ -759,7 +793,11 @@ export default function Reissue() {
               {/* File Upload Section */}
               <Row className="mt-3">
                 <Col md={4}>
-                  <Form.Control type="file" onChange={handleFileChange} />
+                  <Form.Control
+                    type="file"
+                    onChange={handleFileChange}
+                    ref={fileInputRef}
+                  />
                 </Col>
                 <Col md={4}>
                   <Form.Select
@@ -782,6 +820,35 @@ export default function Reissue() {
                 </Col>
               </Row>
 
+              {uploadedFiles.length > 0 && (
+                <div className="mt-3">
+                  <Table bordered>
+                    <thead>
+                      <tr>
+                        <th>File Name</th>
+                        <th>Type</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {uploadedFiles.map((file, index) => (
+                        <tr key={index}>
+                          <td>{file.file.name}</td>
+                          <td>{file.type}</td>
+                          <td>
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleRemoveFile(index)}>
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+
               {/* Document Tabs Section */}
               <Row className="mt-4">
                 <Col>
@@ -799,12 +866,13 @@ export default function Reissue() {
                         <ul>
                           {prDocs.map((doc, index) => (
                             <li key={index}>
-                              <a
-                                href={doc.DocPath}
+                              <Button
+                                style={{ cursor: "pointer" }}
+                                onClick={() => openFile(doc.DocName)}
                                 target="_blank"
                                 rel="noopener noreferrer">
                                 {doc.DocName}
-                              </a>
+                              </Button>
                             </li>
                           ))}
                         </ul>
@@ -822,12 +890,13 @@ export default function Reissue() {
                         <ul>
                           {poDocs.map((doc, index) => (
                             <li key={index}>
-                              <a
-                                href={doc.DocPath}
+                              <Button
+                                style={{ cursor: "pointer" }}
+                                onClick={() => openFile(doc.DocName)}
                                 target="_blank"
                                 rel="noopener noreferrer">
                                 {doc.DocName}
-                              </a>
+                              </Button>
                             </li>
                           ))}
                         </ul>
@@ -845,12 +914,13 @@ export default function Reissue() {
                         <ul>
                           {contractDocs.map((doc, index) => (
                             <li key={index}>
-                              <a
-                                href={doc.DocPath}
+                              <Button
+                                style={{ cursor: "pointer" }}
+                                onClick={() => openFile(doc.DocName)}
                                 target="_blank"
                                 rel="noopener noreferrer">
                                 {doc.DocName}
-                              </a>
+                              </Button>
                             </li>
                           ))}
                         </ul>
@@ -920,23 +990,33 @@ export default function Reissue() {
                   </Form.Group>
                 </Col>
                 <Col md={6}>
-                  <Form.Group controlId="formContractNo">
-                    <Form.Label>Contract No.</Form.Label>
-                    <Form.Control type="text" value={reissueData.contractNo} />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                <Col md={6}>
                   <Form.Group controlId="formBrand">
                     <Form.Label>Brand</Form.Label>
-                    <Form.Control type="text" value={reissueData.Brand} />
+                    <Form.Control
+                      type="text"
+                      value={reissueData.Brand}
+                      onChange={(e) =>
+                        setReissueData({
+                          ...reissueData,
+                          Brand: e.target.value,
+                        })
+                      }
+                    />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group controlId="formModel">
                     <Form.Label>Model</Form.Label>
-                    <Form.Control type="text" value={reissueData.Model} />
+                    <Form.Control
+                      type="text"
+                      value={reissueData.Model}
+                      onChange={(e) =>
+                        setReissueData({
+                          ...reissueData,
+                          Modal: e.target.value,
+                        })
+                      }
+                    />
                   </Form.Group>
                 </Col>
               </Row>
@@ -961,7 +1041,16 @@ export default function Reissue() {
                 <Col md={6}>
                   <Form.Group controlId="formLocation">
                     <Form.Label>Location</Form.Label>
-                    <Form.Control type="text" value={reissueData.Location} />
+                    <Form.Control
+                      type="text"
+                      value={reissueData.Location}
+                      onChange={(e) =>
+                        setReissueData({
+                          ...reissueData,
+                          Location: e.target.value,
+                        })
+                      }
+                    />
                   </Form.Group>
                 </Col>
               </Row>
@@ -994,7 +1083,13 @@ export default function Reissue() {
                           vendorName: e.target.value,
                         })
                       }
+                      list="vendorOption"
                     />
+                    <datalist id="vendorOption">
+                      {/* {vendorAll.map((item, index) => (
+                        <option value={item.vendor_name} />
+                      ))} */}
+                    </datalist>
                   </Form.Group>
                 </Col>
               </Row>
@@ -1034,7 +1129,11 @@ export default function Reissue() {
               {/* File Upload Section */}
               <Row className="mt-3">
                 <Col md={4}>
-                  <Form.Control type="file" onChange={handleFileChange} />
+                  <Form.Control
+                    type="file"
+                    onChange={handleFileChange}
+                    ref={fileInputRef}
+                  />
                 </Col>
                 <Col md={4}>
                   <Form.Select
@@ -1102,7 +1201,11 @@ export default function Reissue() {
       </Modal>
 
       {/* Filter Modal */}
-      <Modal show={showFilterModal} onHide={() => setShowFilterModal(false)} size="lg" centered>
+      <Modal
+        show={showFilterModal}
+        onHide={() => setShowFilterModal(false)}
+        size="lg"
+        centered>
         <Modal.Header closeButton>
           <Modal.Title>Filter Options</Modal.Title>
         </Modal.Header>

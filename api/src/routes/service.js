@@ -45,7 +45,9 @@ const upload = multer({
 const generateChargeDates = (startDate, endDate) => {
   const dates = [];
   let currentDate = new Date(startDate);
+  currentDate.setDate(15);
   const end = new Date(endDate);
+  end.setDate(15);
 
   while (currentDate <= end) {
     dates.push(new Date(currentDate));
@@ -53,6 +55,7 @@ const generateChargeDates = (startDate, endDate) => {
   }
   return dates;
 };
+
 
 // Function to calculate expireStatus based on the endDate
 const calculateExpireStatus = (endDate) => {
@@ -233,8 +236,8 @@ router.post("/insertdata", async (req, res) => {
       try {
         const result = await request.query(`
           INSERT INTO Service (DeviceName, divisionID, price, startDate, endDate, vendorName, serialNumber, contractNo, totalMonth, Brand, Model, Type, Location, WarrantyCount, statusID)
+          OUTPUT INSERTED.serviceID
           VALUES (@DeviceName, @divisionID, @price, @startDate, @endDate, @vendorName, @serialNumber, @contractNo, @totalMonth, @Brand, @Model, @Type, @Location, @WarrantyCount, @statusID);
-          SELECT SCOPE_IDENTITY() AS serviceID;
         `);
 
         const serviceID = result.recordset
@@ -400,7 +403,6 @@ router.put("/updatedata/:serviceID", async (req, res) => {
       startDate,
       endDate,
       vendorName,
-      vendorPhone,
       serialNumber,
       contractNo,
       Brand,
@@ -424,7 +426,6 @@ router.put("/updatedata/:serviceID", async (req, res) => {
     request.input("startDate", db.sql.Date, startDate);
     request.input("endDate", db.sql.Date, endDate);
     request.input("vendorName", db.sql.VarChar, vendorName);
-    request.input("vendorPhone", db.sql.VarChar, vendorPhone || null); // Optional
     request.input("serialNumber", db.sql.VarChar, serialNumber);
     request.input("contractNo", db.sql.VarChar, contractNo);
     request.input("Brand", db.sql.VarChar, Brand || null); // Optional
@@ -443,7 +444,6 @@ router.put("/updatedata/:serviceID", async (req, res) => {
         startDate = @startDate,
         endDate = @endDate,
         vendorName = @vendorName,
-        vendorPhone = @vendorPhone,
         serialNumber = @serialNumber,
         contractNo = @contractNo,
         Brand = @Brand,
@@ -531,7 +531,7 @@ router.delete("/deletetype/:typeId", async (req, res) => {
 
     request.input("typeId", db.sql.Int, typeId);
     await request.query("DELETE FROM ServiceType WHERE TypeId = @typeId");
-    
+
     res.status(200).json({ message: "Type deleted successfully." });
   } catch (error) {
     res.status(500).json({ error: "Server Error" });

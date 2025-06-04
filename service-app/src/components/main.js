@@ -145,7 +145,6 @@ export default function Main() {
         : data.filter((item) => item.divisionID === activeDivision.id);
 
     return visibleData.filter((item) => {
-
       const matchesQuery = (field, query) =>
         (field ?? "")
           .toString()
@@ -688,16 +687,20 @@ export default function Main() {
                 </FormGroup>
               </Col>
             </Row>
+            <Row>
+              <Col className="text-center">
+                <Button variant="success" onClick={handleApplyFilters}>
+                  Search
+                </Button>
+                <Button variant="outline-warning" className="ms-2" onClick={handleClearFilters}>
+                  Clear
+                </Button>
+              </Col>
+            </Row>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="primary" onClick={handleApplyFilters}>
-            Apply
-          </Button>
-          <Button variant="outline-danger" onClick={handleClearFilters}>
-            Clear
-          </Button>
-          <Button variant="secondary" onClick={() => setShowFilterModal(false)}>
+          <Button variant="danger" onClick={() => setShowFilterModal(false)}>
             Cancel
           </Button>
         </Modal.Footer>

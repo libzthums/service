@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { UrlContext } from "../router/route";
 import { useUser } from "../context/userContext";
@@ -9,6 +9,7 @@ export default function InsertData() {
   const { url } = useContext(UrlContext);
   const { user, activeDivision } = useUser();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     DeviceName: "",
@@ -174,8 +175,11 @@ export default function InsertData() {
       ...prev,
       { file: selectedFile, type: fileType },
     ]);
-    setSelectedFile(null);
+    setSelectedFile("");
     setFileType("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleRemoveFile = (index) => {
