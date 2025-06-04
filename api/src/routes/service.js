@@ -45,7 +45,9 @@ const upload = multer({
 const generateChargeDates = (startDate, endDate) => {
   const dates = [];
   let currentDate = new Date(startDate);
+  currentDate.setDate(15);
   const end = new Date(endDate);
+  end.setDate(15);
 
   while (currentDate <= end) {
     dates.push(new Date(currentDate));
@@ -53,6 +55,7 @@ const generateChargeDates = (startDate, endDate) => {
   }
   return dates;
 };
+
 
 // Function to calculate expireStatus based on the endDate
 const calculateExpireStatus = (endDate) => {
@@ -115,6 +118,7 @@ router.get("/", async (req, res) => {
       service.endDate, 
       service.vendorName, 
       service.warrantyCount,
+      service.statusID,
       division.divisionID,
       division.divisionName,
       MAX(sd.monthly_charge) AS monthly_charge
@@ -125,7 +129,7 @@ router.get("/", async (req, res) => {
       service.serviceID, service.DeviceName, service.serialNumber, 
       service.contractNo, service.Brand,
       service.Model, service.Type, service.Location, service.price, service.startDate, 
-      service.endDate, service.vendorName, service.warrantyCount, 
+      service.endDate, service.vendorName, service.warrantyCount, service.statusID,
       division.divisionID,division.divisionName
     `;
 
@@ -197,6 +201,7 @@ router.post("/insertdata", async (req, res) => {
         Type,
         Location,
         WarrantyCount,
+        statusID,
         prFileName,
         poFileName,
         contractFileName,
@@ -226,12 +231,13 @@ router.post("/insertdata", async (req, res) => {
       request.input("Type", db.sql.VarChar, Type);
       request.input("Location", db.sql.VarChar, Location);
       request.input("WarrantyCount", db.sql.Int, WarrantyCount || 0);
+      request.input("statusID", db.sql.Int, statusID || 1);
 
       try {
         const result = await request.query(`
-          INSERT INTO Service (DeviceName, divisionID, price, startDate, endDate, vendorName, serialNumber, contractNo, totalMonth, Brand, Model, Type, Location, WarrantyCount)
-          VALUES (@DeviceName, @divisionID, @price, @startDate, @endDate, @vendorName, @serialNumber, @contractNo, @totalMonth, @Brand, @Model, @Type, @Location, @WarrantyCount)
-          SELECT SCOPE_IDENTITY() AS serviceID;
+          INSERT INTO Service (DeviceName, divisionID, price, startDate, endDate, vendorName, serialNumber, contractNo, totalMonth, Brand, Model, Type, Location, WarrantyCount, statusID)
+          OUTPUT INSERTED.serviceID
+          VALUES (@DeviceName, @divisionID, @price, @startDate, @endDate, @vendorName, @serialNumber, @contractNo, @totalMonth, @Brand, @Model, @Type, @Location, @WarrantyCount, @statusID);
         `);
 
         const serviceID = result.recordset
@@ -397,7 +403,6 @@ router.put("/updatedata/:serviceID", async (req, res) => {
       startDate,
       endDate,
       vendorName,
-      vendorPhone,
       serialNumber,
       contractNo,
       Brand,
@@ -421,7 +426,6 @@ router.put("/updatedata/:serviceID", async (req, res) => {
     request.input("startDate", db.sql.Date, startDate);
     request.input("endDate", db.sql.Date, endDate);
     request.input("vendorName", db.sql.VarChar, vendorName);
-    request.input("vendorPhone", db.sql.VarChar, vendorPhone || null); // Optional
     request.input("serialNumber", db.sql.VarChar, serialNumber);
     request.input("contractNo", db.sql.VarChar, contractNo);
     request.input("Brand", db.sql.VarChar, Brand || null); // Optional
@@ -440,7 +444,6 @@ router.put("/updatedata/:serviceID", async (req, res) => {
         startDate = @startDate,
         endDate = @endDate,
         vendorName = @vendorName,
-        vendorPhone = @vendorPhone,
         serialNumber = @serialNumber,
         contractNo = @contractNo,
         Brand = @Brand,
@@ -494,6 +497,45 @@ router.post("/addtype", async (req, res) => {
   } catch (error) {
     console.error("Error adding type:", error);
     res.status(500).send("Server Error");
+  }
+});
+
+router.put("/updatetype/:typeID", async (req, res) => {
+  try {
+    const { typeID } = req.params;
+    const { typeName } = req.body;
+    if (!typeName || !typeName.trim()) {
+      return res.status(400).json({ error: "Type Name cannot be empty." });
+    }
+
+    const pool = await db.connectDB();
+    const request = pool.request();
+    request.input("typeName", db.sql.VarChar, typeName.trim());
+    request.input("typeID", db.sql.Int, parseInt(typeID, 10));
+    await request.query(
+      `UPDATE ServiceType SET TypeName = @typeName WHERE TypeId = @typeID`
+    );
+
+    res.status(200).json({ message: "Type updated successfully." });
+  } catch (error) {
+    console.error("Error updating type:", error);
+    res.status(500).send("Server Error");
+  }
+});
+
+router.delete("/deletetype/:typeId", async (req, res) => {
+  try {
+    const { typeId } = req.params;
+    const pool = await db.connectDB();
+    const request = pool.request();
+
+    request.input("typeId", db.sql.Int, typeId);
+    await request.query("DELETE FROM ServiceType WHERE TypeId = @typeId");
+
+    res.status(200).json({ message: "Type deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ error: "Server Error" });
+    console.error("Error deleting type:", error);
   }
 });
 

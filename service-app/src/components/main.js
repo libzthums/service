@@ -104,7 +104,7 @@ export default function Main() {
           services.map(async (service) => {
             try {
               const docResponse = await axios.get(
-                `${url}docreader/${service.serviceID}`
+                `${url}document/${service.serviceID}`
               );
               return {
                 ...service,
@@ -145,7 +145,6 @@ export default function Main() {
         : data.filter((item) => item.divisionID === activeDivision.id);
 
     return visibleData.filter((item) => {
-
       const matchesQuery = (field, query) =>
         (field ?? "")
           .toString()
@@ -391,7 +390,7 @@ export default function Main() {
   });
 
   return (
-    <div className="container p-4">
+    <div className="container p-1">
       <h2>Service</h2>
       <div className="row mt-3">
         <div className="col-md-4"></div>
@@ -451,6 +450,7 @@ export default function Main() {
       <Modal
         show={showFilterModal}
         onHide={() => setShowFilterModal(false)}
+        size="lg"
         centered>
         <Modal.Header closeButton>
           <Modal.Title>Filter Options</Modal.Title>
@@ -687,16 +687,20 @@ export default function Main() {
                 </FormGroup>
               </Col>
             </Row>
+            <Row>
+              <Col className="text-center">
+                <Button variant="success" onClick={handleApplyFilters}>
+                  Search
+                </Button>
+                <Button variant="outline-warning" className="ms-2" onClick={handleClearFilters}>
+                  Clear
+                </Button>
+              </Col>
+            </Row>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="primary" onClick={handleApplyFilters}>
-            Apply
-          </Button>
-          <Button variant="outline-danger" onClick={handleClearFilters}>
-            Clear
-          </Button>
-          <Button variant="secondary" onClick={() => setShowFilterModal(false)}>
+          <Button variant="danger" onClick={() => setShowFilterModal(false)}>
             Cancel
           </Button>
         </Modal.Footer>

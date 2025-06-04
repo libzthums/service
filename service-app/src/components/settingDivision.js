@@ -9,11 +9,12 @@ export default function SettingDivision() {
   const [divisionList, setDivisionList] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedDivision, setSelectedDivision] = useState("");
+  const [usernameInput, setUsernameInput] = useState("");
   const [activeTab, setActiveTab] = useState("user");
   const { url } = useContext(UrlContext);
   const navigate = useNavigate();
 
-  // Fetch users and divisions, and return fetched users
+  // Fetch users and divisions
   const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(url + "userManage");
@@ -32,32 +33,57 @@ export default function SettingDivision() {
     fetchData();
   }, [fetchData]);
 
-  const handleUserClick = (user) => {
-    setSelectedUser(user);
-    setActiveTab("division");
+  // Remove user from division
+  const handleRemoveUserFromDivision = async (userID, divisionID) => {
+    if (!window.confirm("Remove this user from the division?")) return;
+    try {
+      await axios.post(url + "userManage/removeDivision", {
+        userID,
+        divisionID,
+      });
+      fetchData();
+    } catch (error) {
+      alert("Failed to remove user from division.");
+    }
   };
 
+  // Set default division for user
+  const handleSetDefaultDivision = async (userID, divisionID) => {
+    try {
+      await axios.post(url + "userManage/setDefaultDivision", {
+        userID,
+        divisionID,
+      });
+      fetchData();
+    } catch (error) {
+      alert("Failed to set default division.");
+    }
+  };
+
+  // Handle username input change for datalist
+  const handleUsernameInputChange = (e) => {
+    const name = e.target.value;
+    setUsernameInput(name);
+    const user = userList.find((u) => u.Name === name);
+    setSelectedUser(user || null);
+  };
+
+  // Handle save (add user to division)
   const handleSave = async () => {
     if (!selectedUser || !selectedDivision) {
       alert("Please select a user and a division.");
       return;
     }
-
     try {
       await axios.post(url + "userManage/addDivision", {
         userID: selectedUser.userID,
         divisionID: selectedDivision,
       });
-
       alert("Division added to user successfully!");
       setSelectedDivision("");
-
-      // Refresh data and update selected user from the new list
-      const updatedUsers = await fetchData();
-      const updatedUser = updatedUsers.find(u => u.userID === selectedUser.userID);
-      setSelectedUser(updatedUser);
-
-      setActiveTab("division");
+      setUsernameInput("");
+      setSelectedUser(null);
+      fetchData();
     } catch (error) {
       console.error("Error adding division to user:", error);
       alert("Failed to add division to user. Please try again.");
@@ -77,6 +103,7 @@ export default function SettingDivision() {
         </Col>
       </Row>
 
+      {/* Username + Division Add Form */}
       <div className="d-flex flex-column align-items-center mb-4">
         <Form className="w-100" style={{ maxWidth: "600px" }}>
           <Form.Group
@@ -89,9 +116,16 @@ export default function SettingDivision() {
             <Col sm={9}>
               <Form.Control
                 type="text"
-                value={selectedUser?.Name || ""}
-                readOnly
+                value={usernameInput}
+                autoComplete="off"
+                list="userList"
+                onChange={handleUsernameInputChange}
               />
+              <datalist id="userList">
+                {userList.map((user) => (
+                  <option key={user.userID} value={user.Name} />
+                ))}
+              </datalist>
             </Col>
           </Form.Group>
 
@@ -131,57 +165,105 @@ export default function SettingDivision() {
         activeKey={activeTab}
         onSelect={(k) => setActiveTab(k)}
         className="mb-3">
+        {/* Division Tab */}
         <Tab eventKey="division" title="Division">
           <h5 className="fw-bold mb-3">Division List</h5>
-          {selectedUser ? (
+          <div style={{ overflowX: "auto", maxHeight: "400px" }}>
             <Table bordered>
               <thead>
                 <tr>
                   <th>Division</th>
-                  <th>User</th>
+                  <th>Members</th>
                 </tr>
               </thead>
               <tbody>
-                {selectedUser.divisions.map((division, idx) => (
-                  <tr key={idx}>
-                    <td>{division.divisionName}</td>
-                    <td>{idx === 0 ? selectedUser.Name : ""}</td>
-                  </tr>
-                ))}
+                {divisionList.map((division) => {
+                  const members = userList.filter((user) =>
+                    user.divisions.some(
+                      (d) => d.divisionID === division.divisionID
+                    )
+                  );
+                  return (
+                    <tr key={division.divisionID}>
+                      <td>{division.divisionName}</td>
+                      <td>
+                        {members.length === 0 ? (
+                          <span className="text-muted">No members</span>
+                        ) : (
+                          members.map((user, idx) => (
+                            <span key={user.userID} className="me-2">
+                              {user.Name}
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                className="m-1"
+                                onClick={() =>
+                                  handleRemoveUserFromDivision(
+                                    user.userID,
+                                    division.divisionID
+                                  )
+                                }>
+                                <i className="fas fa-minus fa-xs"></i>
+                              </Button>
+                              {idx < members.length - 1 ? (
+                                <>
+                                  <br />
+                                </>
+                              ) : null}
+                            </span>
+                          ))
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </Table>
-          ) : (
-            <p className="text-muted">
-              Please select a user from the "User" tab.
-            </p>
-          )}
+          </div>
         </Tab>
 
+        {/* User Tab */}
         <Tab eventKey="user" title="User">
           <h5 className="fw-bold mb-3">User List</h5>
-          {userList.length === 0 ? (
-            <p className="text-muted">No users available.</p>
-          ) : (
-            <Table bordered hover>
-              <thead>
-                <tr>
-                  <th>Username</th>
-                  <th>Division</th>
+          <Table bordered>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Divisions</th>
+                {/* <th>Default Division</th> */}
+              </tr>
+            </thead>
+            <tbody>
+              {userList.map((user) => (
+                <tr key={user.userID}>
+                  <td>{user.Name}</td>
+                  <td>
+                    {user.divisions.map((d) => (
+                      <div key={d.divisionID} className="mb-1">
+                        <Form.Check
+                          type="radio"
+                          name={`defaultDivision-${user.userID}`}
+                          checked={user.defaultDivision === d.divisionID}
+                          onChange={() =>
+                            handleSetDefaultDivision(user.userID, d.divisionID)
+                          }
+                          disabled={user.defaultDivision === d.divisionID}
+                          label={d.divisionName}
+                        />
+                      </div>
+                    ))}
+                  </td>
+                  {/* <td>
+                    {user.divisions.find(
+                      (d) => d.divisionID === user.defaultDivision
+                    )?.divisionName ||
+                      user.divisions[0]?.divisionName ||
+                      "-"}
+                  </td> */}
                 </tr>
-              </thead>
-              <tbody>
-                {userList.map((user, index) => (
-                  <tr
-                    key={index}
-                    onClick={() => handleUserClick(user)}
-                    style={{ cursor: "pointer" }}>
-                    <td>{user.Name}</td>
-                    <td>{user.divisions[0]?.divisionName || "No Division"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )}
+              ))}
+            </tbody>
+          </Table>
         </Tab>
       </Tabs>
     </div>

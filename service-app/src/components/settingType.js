@@ -11,6 +11,8 @@ export default function SettingType() {
   const [error, setError] = useState(null);
   const [typeList, setTypeList] = useState([]);
   const { url } = useContext(UrlContext);
+  const [editTypeID, setEditTypeID] = useState(null);
+  const [editTypeName, setEditTypeName] = useState("");
 
   // Fetch type list from the backend
   useEffect(() => {
@@ -45,11 +47,61 @@ export default function SettingType() {
       const newType = { id: response.data.id, TypeName: typeName };
       setTypeList([...typeList, newType]);
 
-      alert("Type added successfully!");
-      setTypeName(""); // Clear input field
+      const res = await axios.get(url + "service/typelist");
+      setTypeList(res.data || []);
+      setTypeName("");
     } catch (err) {
       console.error("Error adding type:", err);
       setError("Failed to add type. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditType = (type) => {
+    setEditTypeID(type.TypeId);
+    setEditTypeName(type.TypeName);
+  };
+
+  const handleSaveEdit = async (typeId) => {
+    if (!editTypeName.trim()) {
+      setError("Type Name cannot be empty.");
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      await axios.put(url + `service/updatetype/${typeId}`, {
+        typeName: editTypeName,
+      });
+      setTypeList(
+        typeList.map((t) =>
+          t.TypeId === typeId ? { ...t, TypeName: editTypeName } : t
+        )
+      );
+      setEditTypeID(null);
+      setEditTypeName("");
+    } catch (err) {
+      setError("Failed to update type. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditTypeID(null);
+    setEditTypeName("");
+  };
+
+  const handleDeleteType = async (typeId) => {
+    if (!window.confirm("Are you sure you want to delete this type?")) return;
+    try {
+      setLoading(true);
+      setError(null);
+      await axios.delete(url + `service/deletetype/${typeId}`);
+      setTypeList(typeList.filter((t) => t.TypeId !== typeId));
+    } catch (err) {
+      setError("Failed to delete type. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -112,6 +164,7 @@ export default function SettingType() {
             <tr>
               <th>#</th>
               <th>Type Name</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -119,7 +172,55 @@ export default function SettingType() {
               typeList.map((type, index) => (
                 <tr key={type.id}>
                   <td>{index + 1}</td>
-                  <td>{type.TypeName}</td>
+                  <td>
+                    {editTypeID === type.TypeId ? (
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={editTypeName}
+                        onChange={(e) => setEditTypeName(e.target.value)}
+                        disabled={loading}
+                        autoFocus
+                      />
+                    ) : (
+                      type.TypeName
+                    )}
+                  </td>
+                  <td>
+                    {editTypeID === type.TypeId ? (
+                      <>
+                        <Button
+                          className="mr-1"
+                          variant="success"
+                          onClick={() => handleSaveEdit(type.TypeId)}
+                          disabled={loading}>
+                          Save
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={handleCancelEdit}
+                          disabled={loading}>
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          className="mr-1"
+                          variant="warning"
+                          onClick={() => handleEditType(type)}
+                          disabled={loading}>
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={() => handleDeleteType(type.TypeId)}
+                          disabled={loading}>
+                          Delete
+                        </Button>
+                      </>
+                    )}
+                  </td>
                 </tr>
               ))
             ) : (

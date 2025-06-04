@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 const useUserData = (url) => {
   const [userList, setUserList] = useState([]);
+  const [permissionList, setPermissionList] = useState([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -17,37 +18,40 @@ const useUserData = (url) => {
       }
     };
 
+    const fetchPermissionList = async () => {
+      try {
+        const response = await axios.get(url + "userManage/Permission");
+        setPermissionList(response.data.permissionList || []);
+      } catch (error) {
+        console.error("Error fetching permission list:", error);
+      }
+    };
+
+    fetchPermissionList();
     fetchUsers();
   }, [url]);
 
-  return { userList, setUserList };
+  return { userList, setUserList, permissionList, setPermissionList };
 };
 
 export default function SettingPermission() {
   const { url } = useContext(UrlContext);
-  const { userList, setUserList } = useUserData(url);
+  const { userList, setUserList, permissionList } = useUserData(url);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedPermission, setSelectedPermission] = useState("");
   const navigate = useNavigate();
 
-  // Map numeric permissions to roles
-  const permissionMap = {
-    1: "Viewer",
-    2: "Admin",
-    3: "Manager",
-  };
-
-  // Reverse map for saving permissions
-  const reversePermissionMap = {
-    Viewer: 1,
-    Admin: 2,
-    Manager: 3,
-  };
-
   const handleUserClick = (user) => {
     setSelectedUser(user);
-    setSelectedPermission(permissionMap[user.Permission]); // Pre-fill the permission dropdown
+    setSelectedPermission(String(user.Permission));
   };
+
+  const handleUserInputChange = (e) => {
+  const name = e.target.value;
+  const user = userList.find((u) => u.Name === name);
+  setSelectedUser(user || null);
+  setSelectedPermission(user ? String(user.Permission) : "");
+};
 
   const handleSave = async () => {
     if (!selectedUser || !selectedPermission) {
@@ -58,7 +62,7 @@ export default function SettingPermission() {
     try {
       await axios.post(url + "userManage/updatePermission", {
         userID: selectedUser.userID,
-        permission: reversePermissionMap[selectedPermission], // Save numeric value
+        permission: selectedPermission,
       });
 
       alert("Permission updated successfully!");
@@ -94,17 +98,23 @@ export default function SettingPermission() {
           <Form.Group
             as={Row}
             className="mb-3 justify-content-center"
-            controlId="formUsername"
-          >
+            controlId="formUsername">
             <Form.Label column sm={3} className="fw-bold text-end">
               Username:
             </Form.Label>
             <Col sm={9}>
               <Form.Control
                 type="text"
-                value={selectedUser?.Name || ""}
-                readOnly
+                value={selectedUser?.Name}
+                autoComplete="off"
+                list="userList"
+                onChange={handleUserInputChange}
               />
+              <datalist id="userList">
+                {userList.map((user) => (
+                  <option key={user.userID} value={user.Name} />
+                ))}
+              </datalist>
             </Col>
           </Form.Group>
 
@@ -112,8 +122,7 @@ export default function SettingPermission() {
           <Form.Group
             as={Row}
             className="mb-3 justify-content-center"
-            controlId="formPermission"
-          >
+            controlId="formPermission">
             <Form.Label column sm={3} className="fw-bold text-end">
               Permission:
             </Form.Label>
@@ -121,12 +130,13 @@ export default function SettingPermission() {
               <Form.Select
                 value={selectedPermission}
                 onChange={(e) => setSelectedPermission(e.target.value)}
-                style={{ textAlign: "center" }}
-              >
+                style={{ textAlign: "center" }}>
                 <option value="">---- Please select permission ----</option>
-                {Object.values(permissionMap).map((permission) => (
-                  <option key={permission} value={permission}>
-                    {permission}
+                {permissionList.map((permission) => (
+                  <option
+                    key={permission.PermissionID}
+                    value={String(permission.PermissionID)}>
+                    {permission.PermissionName}
                   </option>
                 ))}
               </Form.Select>
@@ -138,8 +148,7 @@ export default function SettingPermission() {
               <Button
                 variant="success"
                 onClick={handleSave}
-                disabled={!selectedUser}
-              >
+                disabled={!selectedUser}>
                 Save
               </Button>
             </Col>
@@ -160,16 +169,20 @@ export default function SettingPermission() {
             </tr>
           </thead>
           <tbody>
-            {userList.map((user) => (
-              <tr
-                key={user.userID}
-                onClick={() => handleUserClick(user)}
-                style={{ cursor: "pointer" }}
-              >
-                <td>{user.Name}</td>
-                <td>{permissionMap[user.Permission]}</td>
-              </tr>
-            ))}
+            {userList.map((user) => {
+              const PermissionName =
+                permissionList.find((p) => String(p.PermissionID) === String(user.Permission))
+                  ?.PermissionName || user.Permission;
+              return (
+                <tr
+                  key={user.userID}
+                  onClick={() => handleUserClick(user)}
+                  style={{ cursor: "pointer" }}>
+                  <td>{user.Name}</td>
+                  <td>{PermissionName}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </Table>
       )}
