@@ -29,6 +29,7 @@ export default function SummaryPage() {
 
   const [showExportModal, setShowExportModal] = useState(false);
   const [filteredData, setFilteredData] = useState([]);
+  const [serviceDetails, setServiceDetails] = useState({});
   const [startYear, setStartYear] = useState(2023);
   const [endYear, setEndYear] = useState(2025);
 
@@ -46,6 +47,7 @@ export default function SummaryPage() {
     []
   );
 
+  // Fetch all services (no ServiceDetail)
   const fetchData = useCallback(() => {
     axios
       .get(url + "service")
@@ -70,22 +72,8 @@ export default function SummaryPage() {
         setStartYear(minYear);
         setEndYear(maxYear);
 
-        const monthRange = [];
-        for (let y = minYear; y <= maxYear; y++) {
-          for (let m = 0; m < 12; m++) {
-            monthRange.push({ year: y, month: m });
-          }
-        }
-
         services.forEach((item) => {
-          const start = new Date(item.startDate);
-          const end = new Date(item.endDate);
-
-          if (end.getFullYear() < minYear || start.getFullYear() > maxYear)
-            return;
-
-          const groupKey = `${item.DeviceName}_${item.Location}_${item.serialNumber}`;
-
+          const groupKey = `${item.DeviceName}_${item.serialNumber}`;
           if (!grouped[groupKey]) {
             grouped[groupKey] = {
               ...item,
@@ -93,7 +81,7 @@ export default function SummaryPage() {
               endDate: item.endDate,
               serviceID: item.serviceID,
               serviceIDs: [item.serviceID],
-              monthlyCharges: {},
+              divisionName: item.divisionName,
             };
           } else {
             grouped[groupKey].serviceIDs.push(item.serviceID);
@@ -103,7 +91,6 @@ export default function SummaryPage() {
             const newStart = new Date(item.startDate);
             const newEnd = new Date(item.endDate);
 
-            // Update to latest dates
             if (newStart > currentStart) {
               grouped[groupKey].startDate = item.startDate;
               grouped[groupKey].serviceID = item.serviceID;
@@ -113,173 +100,31 @@ export default function SummaryPage() {
               grouped[groupKey].serviceID = item.serviceID;
             }
           }
-
-          monthRange.forEach(({ year, month }) => {
-            const monthStart = new Date(year, month, 1);
-            const monthEnd = new Date(year, month + 1, 0);
-
-            if (monthEnd >= start && monthStart <= end) {
-              const key = `${year}-${month}`;
-              grouped[groupKey].monthlyCharges[key] =
-                (grouped[groupKey].monthlyCharges[key] || 0) +
-                Number(item.monthly_charge);
-            }
-          });
         });
 
         setFilteredData(Object.values(grouped));
       })
       .catch((err) => console.error("Failed to fetch:", err));
-  }, [url, isAdmin, activeDivision.id]);
+  }, [activeDivision.id, isAdmin, url]);
 
-  const exportToExcelInRange = async () => {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(
-      fromYear === toYear ? `Total ${fromYear}` : `Total ${fromYear}-${toYear}`
-    );
-    // worksheet.views = [
-    //   { state: "frozen", xSplit: 1, ySplit: 3 }, // freeze column A and top 3 rows
-    // ];
-
-    // Prepare full month-year list
-    const monthYearList = [];
-    for (let year = fromYear; year <= toYear; year++) {
-      for (let month = 0; month < 12; month++) {
-        monthYearList.push({ year, month });
-      }
-    }
-
-    // Create title row
-    const titleText =
-      fromYear === toYear
-        ? `Service Total for Year ${fromYear}`
-        : `Service Total from ${fromYear} – ${toYear}`;
-    const totalColumns = 1 + monthYearList.length + 1; // Description + months + Total
-    worksheet.mergeCells(1, 1, 1, totalColumns);
-    const titleCell = worksheet.getCell("A1");
-    titleCell.value = titleText;
-    titleCell.font = { bold: true, size: 16 };
-    titleCell.alignment = { horizontal: "center", vertical: "middle" };
-
-    // Add a blank spacer row (row 2)
-    worksheet.addRow([]);
-
-    // Build the header row
-    const header = [
-      "Description",
-      ...monthYearList.map(({ year, month }) =>
-        new Date(year, month).toLocaleString("default", {
-          month: "short",
-          year: "numeric",
-        })
-      ),
-      "Total",
-    ];
-    worksheet.addRow(header);
-    worksheet.getRow(1).font = { bold: true };
-
-    // Data rows per device
+  // Fetch ServiceDetail for each grouped serviceID
+  useEffect(() => {
+    if (filteredData.length === 0) return;
     filteredData.forEach((row) => {
-      const dataRow = [row.DeviceName];
-      let total = 0;
-
-      monthYearList.forEach(({ year, month }) => {
-        const start = new Date(row.startDate);
-        const end = new Date(row.endDate);
-        const monthStart = new Date(year, month, 1);
-        const monthEnd = new Date(year, month + 1, 0);
-
-        if (monthEnd >= start && monthStart <= end) {
-          if (row.warrantyMonths.includes(month)) {
-            dataRow.push("On Warranty");
-          } else {
-            const value = row.monthlyCharges[month];
-            if (value > 0) {
-              dataRow.push(value);
-              total += value;
-            } else {
-              dataRow.push("-");
-            }
-          }
-        } else {
-          dataRow.push("-");
-        }
-      });
-
-      dataRow.push(total);
-      const addedRow = worksheet.addRow(dataRow);
-
-      // Style cells
-      addedRow.eachCell((cell, colIndex) => {
-        const val = cell.value;
-        if (typeof val === "number") {
-          cell.numFmt = '"฿"#,##0.00';
-        }
-        if (val === "On Warranty") {
-          cell.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFFFC000" }, // Light yellow
-          };
-        }
-      });
-    });
-
-    // Total row (bottom)
-    const totalRow = ["Total"];
-    let grandTotal = 0;
-
-    monthYearList.forEach(({ year, month }, index) => {
-      let colTotal = 0;
-      filteredData.forEach((row) => {
-        const start = new Date(row.startDate);
-        const end = new Date(row.endDate);
-        const monthStart = new Date(year, month, 1);
-        const monthEnd = new Date(year, month + 1, 0);
-
-        if (
-          monthEnd >= start &&
-          monthStart <= end &&
-          !row.warrantyMonths.includes(month)
-        ) {
-          const value = row.monthlyCharges[month];
-          if (value > 0) {
-            colTotal += value;
-          }
-        }
-      });
-      totalRow.push(colTotal > 0 ? colTotal : "-");
-      if (typeof colTotal === "number") grandTotal += colTotal;
-    });
-
-    totalRow.push(grandTotal);
-    const totalRowAdded = worksheet.addRow(totalRow);
-    totalRowAdded.font = { bold: true };
-    totalRowAdded.eachCell((cell) => {
-      if (typeof cell.value === "number") {
-        cell.numFmt = '"฿"#,##0.00';
+      if (!serviceDetails[row.serviceID]) {
+        axios
+          .get(`${url}service/detail/${row.serviceID}`)
+          .then((res) => {
+            setServiceDetails((prev) => ({
+              ...prev,
+              [row.serviceID]: res.data,
+            }));
+          })
+          .catch(() => {});
       }
     });
-
-    // Auto width
-    worksheet.columns.forEach((col) => {
-      let maxLen = 12;
-      col.eachCell({ includeEmpty: true }, (cell) => {
-        const val = cell.value ? cell.value.toString() : "";
-        maxLen = Math.max(maxLen, val.length);
-      });
-      col.width = maxLen + 2;
-    });
-
-    // Export
-    const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(
-      new Blob([buffer]),
-      fromYear === toYear
-        ? `Service_Total_${fromYear}.xlsx`
-        : `Service_Total_${fromYear}-${toYear}.xlsx`
-    );
-  };
+    // eslint-disable-next-line
+  }, [filteredData]);
 
   useEffect(() => {
     fetchData();
@@ -295,13 +140,132 @@ export default function SummaryPage() {
     return months;
   }, [startYear, endYear]);
 
+  // Export logic (uses serviceDetails)
+  const exportToExcelInRange = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(
+      fromYear === toYear ? `Total ${fromYear}` : `Total ${fromYear}-${toYear}`
+    );
+
+    const monthYearList = [];
+    for (let year = fromYear; year <= toYear; year++) {
+      for (let month = 0; month < 12; month++) {
+        monthYearList.push({ year, month });
+      }
+    }
+
+    const titleText =
+      fromYear === toYear
+        ? `Service Total for Year ${fromYear}`
+        : `Service Total from ${fromYear} – ${toYear}`;
+    const totalColumns = 1 + monthYearList.length + 1;
+    worksheet.mergeCells(1, 1, 1, totalColumns);
+    const titleCell = worksheet.getCell("A1");
+    titleCell.value = titleText;
+    titleCell.font = { bold: true, size: 16 };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+
+    worksheet.addRow([]);
+
+    const header = [
+      "Description",
+      ...monthYearList.map(({ year, month }) =>
+        new Date(year, month).toLocaleString("default", {
+          month: "short",
+          year: "numeric",
+        })
+      ),
+      "Total",
+    ];
+    worksheet.addRow(header);
+    worksheet.getRow(1).font = { bold: true };
+
+    filteredData.forEach((row) => {
+      const details = row.serviceIDs.flatMap((id) => serviceDetails[id] || []);
+      const dataRow = [row.DeviceName];
+      let total = 0;
+
+      monthYearList.forEach(({ year, month }) => {
+        const chargeDetail = details.find((d) => {
+          const dDate = new Date(d.charge_date);
+          return dDate.getFullYear() === year && dDate.getMonth() === month;
+        });
+        if (chargeDetail) {
+          const value = Number(chargeDetail.monthly_charge);
+          dataRow.push(value);
+          total += value;
+        } else {
+          dataRow.push("-");
+        }
+      });
+
+      dataRow.push(total);
+      const addedRow = worksheet.addRow(dataRow);
+
+      addedRow.eachCell((cell, colIndex) => {
+        const val = cell.value;
+        if (typeof val === "number") {
+          cell.numFmt = '"฿"#,##0.00';
+        }
+      });
+    });
+
+    // Total row (bottom)
+    const totalRow = ["Total"];
+    let grandTotal = 0;
+
+    monthYearList.forEach(({ year, month }, index) => {
+      let colTotal = 0;
+      filteredData.forEach((row) => {
+        const details = row.serviceIDs.flatMap(
+          (id) => serviceDetails[id] || []
+        );
+        const chargeDetail = details.find((d) => {
+          const dDate = new Date(d.charge_date);
+          return dDate.getFullYear() === year && dDate.getMonth() === month;
+        });
+        if (chargeDetail) {
+          colTotal += Number(chargeDetail.monthly_charge);
+        }
+      });
+      totalRow.push(colTotal > 0 ? colTotal : "-");
+      if (typeof colTotal === "number") grandTotal += colTotal;
+    });
+
+    totalRow.push(grandTotal);
+    const totalRowAdded = worksheet.addRow(totalRow);
+    totalRowAdded.font = { bold: true };
+    totalRowAdded.eachCell((cell) => {
+      if (typeof cell.value === "number") {
+        cell.numFmt = '"฿"#,##0.00';
+      }
+    });
+
+    worksheet.columns.forEach((col) => {
+      let maxLen = 12;
+      col.eachCell({ includeEmpty: true }, (cell) => {
+        const val = cell.value ? cell.value.toString() : "";
+        maxLen = Math.max(maxLen, val.length);
+      });
+      col.width = maxLen + 2;
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(
+      new Blob([buffer]),
+      fromYear === toYear
+        ? `Service_Total_${fromYear}.xlsx`
+        : `Service_Total_${fromYear}-${toYear}.xlsx`
+    );
+  };
+
   return (
     <div className="container p-1">
       <h4>
         Total cost from Jan {startYear} to Dec {endYear}
       </h4>
 
-      <div className="mt-3">
+      <div className="mt-3" style={{ overflowX: "auto", maxHeight: "600px" }}>
         <Table bordered hover responsive>
           <thead>
             <tr>
@@ -346,10 +310,10 @@ export default function SummaryPage() {
             {filteredData.length > 0 ? (
               <>
                 {filteredData.map((row) => {
-                  const total = Object.entries(row.monthlyCharges).reduce(
-                    (sum, [, charge]) => sum + charge,
-                    0
+                  const details = row.serviceIDs.flatMap(
+                    (id) => serviceDetails[id] || []
                   );
+                  let total = 0;
                   return (
                     <tr key={row.serviceID}>
                       <td
@@ -360,7 +324,8 @@ export default function SummaryPage() {
                           backgroundColor: "#fff",
                           zIndex: 2,
                         }}>
-                        {row.DeviceName} {row.serialNumber}<br></br>
+                        {row.DeviceName} {row.serialNumber}
+                        <br />
                         {`(${formatDate(row.startDate)}-${formatDate(
                           row.endDate
                         )})`}
@@ -387,26 +352,26 @@ export default function SummaryPage() {
                         </Link>
                       </td>
                       {monthRange.map(({ year, month }) => {
-                        const key = `${year}-${month}`;
-                        const charge = row.monthlyCharges[key];
-                        const isWarranty =
-                          Array.isArray(row.warrantyMonths) &&
-                          row.warrantyMonths.includes(month);
+                        const chargeDetail = details.find((d) => {
+                          const dDate = new Date(d.charge_date);
+                          return (
+                            dDate.getFullYear() === year &&
+                            dDate.getMonth() === month
+                          );
+                        });
+                        let cellValue = "-";
+                        if (chargeDetail) {
+                          cellValue = Number(
+                            chargeDetail.monthly_charge
+                          ).toLocaleString("th-TH", {
+                            style: "currency",
+                            currency: "THB",
+                          });
+                          total += Number(chargeDetail.monthly_charge);
+                        }
                         return (
-                          <td
-                            key={key}
-                            className="text-center"
-                            style={
-                              isWarranty ? { backgroundColor: "#fff3cd" } : {}
-                            }>
-                            {isWarranty
-                              ? "On Warranty"
-                              : charge > 0
-                              ? charge.toLocaleString("th-TH", {
-                                  style: "currency",
-                                  currency: "THB",
-                                })
-                              : "-"}
+                          <td key={`${year}-${month}`} className="text-center">
+                            {cellValue}
                           </td>
                         );
                       })}
@@ -437,12 +402,24 @@ export default function SummaryPage() {
                     Total
                   </td>
                   {monthRange.map(({ year, month }) => {
-                    const key = `${year}-${month}`;
-                    const total = filteredData.reduce((sum, row) => {
-                      return sum + (row.monthlyCharges[key] || 0);
-                    }, 0);
+                    let total = 0;
+                    filteredData.forEach((row) => {
+                      const details = row.serviceIDs.flatMap(
+                        (id) => serviceDetails[id] || []
+                      );
+                      const chargeDetail = details.find((d) => {
+                        const dDate = new Date(d.charge_date);
+                        return (
+                          dDate.getFullYear() === year &&
+                          dDate.getMonth() === month
+                        );
+                      });
+                      if (chargeDetail) {
+                        total += Number(chargeDetail.monthly_charge);
+                      }
+                    });
                     return (
-                      <td key={key}>
+                      <td key={`${year}-${month}`}>
                         {total > 0
                           ? total.toLocaleString("th-TH", {
                               style: "currency",
@@ -455,10 +432,13 @@ export default function SummaryPage() {
                   <td>
                     {filteredData
                       .reduce((sum, row) => {
+                        const details = row.serviceIDs.flatMap(
+                          (id) => serviceDetails[id] || []
+                        );
                         return (
                           sum +
-                          Object.values(row.monthlyCharges).reduce(
-                            (s, c) => s + c,
+                          details.reduce(
+                            (s, d) => s + Number(d.monthly_charge || 0),
                             0
                           )
                         );

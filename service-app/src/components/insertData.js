@@ -86,8 +86,6 @@ export default function InsertData() {
         return;
       }
 
-      alert("Service added successfully!");
-
       if (uploadedFiles.length > 0) {
         const formDataFile = new FormData();
         uploadedFiles.forEach((file) => {
@@ -99,8 +97,10 @@ export default function InsertData() {
 
         await axios.post(url + "service/insertdoc", formDataFile);
 
-        alert("Files uploaded successfully!");
+        console.log("Files uploaded successfully!");
       }
+
+      alert("Service added successfully!");
 
       // Reset form
       setFormData({
@@ -118,9 +118,12 @@ export default function InsertData() {
         Type: "",
         Location: "",
       });
-      setUploadedFiles([]);
-      setSelectedFile(null);
+      setSelectedFile("");
       setFileType("");
+      setUploadedFiles([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (error) {
       console.error("Error submitting data or uploading files:", error);
       alert("An error occurred. Please try again.");
@@ -143,9 +146,12 @@ export default function InsertData() {
       Type: "",
       Location: "",
     });
-    setUploadedFiles([]);
-    setSelectedFile(null);
+    setSelectedFile("");
     setFileType("");
+    setUploadedFiles([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleFileChange = (e) => {
@@ -390,6 +396,7 @@ export default function InsertData() {
               type="file"
               className="form-control"
               onChange={handleFileChange}
+              ref={fileInputRef}
             />
           </div>
           <div className="col-md-4">

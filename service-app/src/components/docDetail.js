@@ -30,23 +30,32 @@ export default function DocDetail() {
     fetchDocuments();
   }, [serviceID, url]);
 
+  let defaultTab = "pr";
+if (prDocs.length > 0) {
+  defaultTab = "pr";
+} else if (poDocs.length > 0) {
+  defaultTab = "po";
+} else if (contractDocs.length > 0) {
+  defaultTab = "contract";
+}
+
   return (
-    <div className="p-4 container">
+    <div className="p-1 container">
       <Button variant="secondary" onClick={() => navigate(-1)}>
         <i className="fas fa-arrow-left"></i> Back
       </Button>
-      <h2 className="mt-4 text-2xl font-semibold">Document View</h2>
+      <h2 className="mt-4 mb-4 text-2xl font-semibold">Document</h2>
 
-      <Tabs
-        defaultActiveKey="pr"
-        id="uncontrolled-tab-example"
-        className="mb-3"
-        variant="pills">
+      <Tabs defaultActiveKey={defaultTab} className="mb-3">
         <Tab
           eventKey="pr"
           title="PR"
-          className="border-top border-bottom border-secondary border-2"
-          disabled={prDocs.length === 0}>
+          tabClassName={
+            prDocs.length > 0
+              ? "bg-primary"
+              : "bg-secondary"
+          }
+          className="border-top border-bottom border-secondary border-2">
           {prDocs.length > 0 ? (
             <ul>
               {prDocs.map((doc, index) => (
@@ -68,8 +77,12 @@ export default function DocDetail() {
         <Tab
           eventKey="po"
           title="PO"
-          className="border-top border-bottom border-secondary border-2"
-          disabled={poDocs.length === 0}>
+          tabClassName={
+            poDocs.length > 0
+              ? "bg-primary"
+              : "bg-secondary"
+          }
+          className="border-top border-bottom border-secondary border-2">
           {poDocs.length > 0 ? (
             <ul>
               {poDocs.map((doc, index) => (
@@ -91,6 +104,11 @@ export default function DocDetail() {
         <Tab
           eventKey="contract"
           title="Contract"
+          tabClassName={
+            contractDocs.length > 0
+              ? "bg-primary"
+              : "bg-secondary"
+          }
           className="border-top border-bottom border-secondary border-2"
           disabled={contractDocs.length === 0}>
           {contractDocs.length > 0 ? (

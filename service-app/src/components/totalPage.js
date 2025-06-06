@@ -30,6 +30,7 @@ export default function TotalPage() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [filteredData, setFilteredData] = useState([]);
+  const [serviceDetails, setServiceDetails] = useState({});
   const [showExportModal, setShowExportModal] = useState(false);
   const [fromYear, setFromYear] = useState(today.getFullYear());
   const [toYear, setToYear] = useState(today.getFullYear());
@@ -47,6 +48,7 @@ export default function TotalPage() {
   const handlePrevYear = () => setYear((prev) => prev - 1);
   const handleNextYear = () => setYear((prev) => prev + 1);
 
+  // Fetch all services (no ServiceDetail)
   const fetchData = useCallback(() => {
     axios
       .get(url + "service")
@@ -63,7 +65,7 @@ export default function TotalPage() {
           // Skip services outside the selected year
           if (start.getFullYear() > year || end.getFullYear() < year) return;
 
-          const groupKey = `${item.DeviceName}_${item.Location}_${item.serialNumber}`;
+          const groupKey = `${item.DeviceName}_${item.serialNumber}`;
 
           // Initialize group if needed
           if (!grouped[groupKey]) {
@@ -73,7 +75,7 @@ export default function TotalPage() {
               endDate: item.endDate,
               serviceID: item.serviceID,
               serviceIDs: [item.serviceID],
-              monthlyCharges: Array(12).fill(0),
+              divisionName: item.divisionName,
             };
           } else {
             grouped[groupKey].serviceIDs.push(item.serviceID);
@@ -93,33 +95,46 @@ export default function TotalPage() {
               grouped[groupKey].serviceID = item.serviceID;
             }
           }
-
-          // Merge charges into the same 12-month array
-          for (let month = 0; month < 12; month++) {
-            const monthStart = new Date(year, month, 1);
-            const monthEnd = new Date(year, month + 1, 0);
-
-            if (monthEnd >= start && monthStart <= end) {
-              grouped[groupKey].monthlyCharges[month] += Number(
-                item.monthly_charge
-              );
-            }
-          }
         });
 
         setFilteredData(Object.values(grouped));
       })
       .catch((err) => console.error("Failed to fetch:", err));
-  }, [url, year, isAdmin, activeDivision.id]);
+  }, [url, isAdmin, activeDivision.id, year]);
 
+  // Fetch ServiceDetail for each grouped serviceID
+  useEffect(() => {
+    if (filteredData.length === 0) return;
+    filteredData.forEach((row) => {
+      row.serviceIDs.forEach((id) => {
+        if (!serviceDetails[id]) {
+          axios
+            .get(`${url}service/detail/${id}`)
+            .then((res) => {
+              setServiceDetails((prev) => ({
+                ...prev,
+                [id]: res.data,
+              }));
+            })
+            .catch(() => {
+              console.error(`Failed to fetch details for serviceID: ${id}`);
+            });
+        }
+      });
+    });
+    // eslint-disable-next-line
+  }, [filteredData]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Export logic (uses serviceDetails)
   const exportToExcelInRange = async () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(
       fromYear === toYear ? `Total ${fromYear}` : `Total ${fromYear}-${toYear}`
     );
-    // worksheet.views = [
-    //   { state: "frozen", xSplit: 1, ySplit: 3 }, // freeze column A and top 3 rows
-    // ];
 
     // Prepare full month-year list
     const monthYearList = [];
@@ -141,7 +156,6 @@ export default function TotalPage() {
     titleCell.font = { bold: true, size: 16 };
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
 
-    // Add a blank spacer row (row 2)
     worksheet.addRow([]);
 
     // Build the header row
@@ -160,27 +174,19 @@ export default function TotalPage() {
 
     // Data rows per device
     filteredData.forEach((row) => {
+      const details = row.serviceIDs.flatMap((id) => serviceDetails[id] || []);
       const dataRow = [row.DeviceName];
       let total = 0;
 
       monthYearList.forEach(({ year, month }) => {
-        const start = new Date(row.startDate);
-        const end = new Date(row.endDate);
-        const monthStart = new Date(year, month, 1);
-        const monthEnd = new Date(year, month + 1, 0);
-
-        if (monthEnd >= start && monthStart <= end) {
-          if (row.warrantyMonths.includes(month)) {
-            dataRow.push("On Warranty");
-          } else {
-            const value = row.monthlyCharges[month];
-            if (value > 0) {
-              dataRow.push(value);
-              total += value;
-            } else {
-              dataRow.push("-");
-            }
-          }
+        const chargeDetail = details.find((d) => {
+          const dDate = new Date(d.charge_date);
+          return dDate.getFullYear() === year && dDate.getMonth() === month;
+        });
+        if (chargeDetail) {
+          const value = Number(chargeDetail.monthly_charge);
+          dataRow.push(value);
+          total += value;
         } else {
           dataRow.push("-");
         }
@@ -195,13 +201,6 @@ export default function TotalPage() {
         if (typeof val === "number") {
           cell.numFmt = '"฿"#,##0.00';
         }
-        if (val === "On Warranty") {
-          cell.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFFFC000" }, // Light yellow
-          };
-        }
       });
     });
 
@@ -212,20 +211,15 @@ export default function TotalPage() {
     monthYearList.forEach(({ year, month }, index) => {
       let colTotal = 0;
       filteredData.forEach((row) => {
-        const start = new Date(row.startDate);
-        const end = new Date(row.endDate);
-        const monthStart = new Date(year, month, 1);
-        const monthEnd = new Date(year, month + 1, 0);
-
-        if (
-          monthEnd >= start &&
-          monthStart <= end &&
-          !row.warrantyMonths.includes(month)
-        ) {
-          const value = row.monthlyCharges[month];
-          if (value > 0) {
-            colTotal += value;
-          }
+        const details = row.serviceIDs.flatMap(
+          (id) => serviceDetails[id] || []
+        );
+        const chargeDetail = details.find((d) => {
+          const dDate = new Date(d.charge_date);
+          return dDate.getFullYear() === year && dDate.getMonth() === month;
+        });
+        if (chargeDetail) {
+          colTotal += Number(chargeDetail.monthly_charge);
         }
       });
       totalRow.push(colTotal > 0 ? colTotal : "-");
@@ -261,10 +255,6 @@ export default function TotalPage() {
     );
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
   return (
     <div className="container p-1">
       <h4>Total cost per year in {year}</h4>
@@ -278,7 +268,7 @@ export default function TotalPage() {
         </Button>
       </div>
 
-      <div className="mt-3">
+      <div className="mt-3" style={{ overflowX: "auto", maxHeight: "600px" }}>
         <Table bordered hover responsive size="lg">
           <thead>
             <tr>
@@ -325,14 +315,10 @@ export default function TotalPage() {
             {filteredData.length > 0 ? (
               <>
                 {filteredData.map((row) => {
-                  const rowTotal = row.monthlyCharges.reduce(
-                    (sum, charge, index) => {
-                      return row.warrantyMonths.includes(index)
-                        ? sum
-                        : sum + charge;
-                    },
-                    0
+                  const details = row.serviceIDs.flatMap(
+                    (id) => serviceDetails[id] || []
                   );
+                  let rowTotal = 0;
                   return (
                     <tr key={row.serviceID}>
                       <td
@@ -343,7 +329,7 @@ export default function TotalPage() {
                           background: "#fff",
                           zIndex: 1,
                         }}>
-                        {row.DeviceName} {row.serialNumber} <br></br>
+                        {row.DeviceName} {row.serialNumber} <br />
                         {`(${formatDate(row.startDate)}-${formatDate(
                           row.endDate
                         )})`}
@@ -362,26 +348,30 @@ export default function TotalPage() {
                           </Button>
                         </Link>
                       </td>
-                      {row.monthlyCharges.map((charge, index) => (
-                        <td
-                          key={index}
-                          className="text-center"
-                          style={
-                            row.warrantyMonths.includes(index)
-                              ? { backgroundColor: "#fff3cd" }
-                              : {}
-                          }>
-                          {row.warrantyMonths.includes(index)
-                            ? "On Warranty"
-                            : charge > 0
-                            ? charge.toLocaleString("th-TH", {
-                                style: "currency",
-                                currency: "THB",
-                              })
-                            : "-"}
-                        </td>
-                      ))}
-                      {/* Row Total */}
+                      {monthNames.map((month, i) => {
+                        const chargeDetail = details.find((d) => {
+                          const dDate = new Date(d.charge_date);
+                          return (
+                            dDate.getFullYear() === year &&
+                            dDate.getMonth() === i
+                          );
+                        });
+                        let cellValue = "-";
+                        if (chargeDetail) {
+                          cellValue = Number(
+                            chargeDetail.monthly_charge
+                          ).toLocaleString("th-TH", {
+                            style: "currency",
+                            currency: "THB",
+                          });
+                          rowTotal += Number(chargeDetail.monthly_charge);
+                        }
+                        return (
+                          <td key={i} className="text-center">
+                            {cellValue}
+                          </td>
+                        );
+                      })}
                       <td
                         className="text-center"
                         style={{
@@ -410,14 +400,24 @@ export default function TotalPage() {
                     }}>
                     Total
                   </td>
-                  {Array.from({ length: 12 }, (_, monthIndex) => {
-                    const monthlyTotal = filteredData.reduce((sum, row) => {
-                      return row.warrantyMonths.includes(monthIndex)
-                        ? sum
-                        : sum + row.monthlyCharges[monthIndex];
-                    }, 0);
+                  {monthNames.map((month, i) => {
+                    let monthlyTotal = 0;
+                    filteredData.forEach((row) => {
+                      const details = row.serviceIDs.flatMap(
+                        (id) => serviceDetails[id] || []
+                      );
+                      const chargeDetail = details.find((d) => {
+                        const dDate = new Date(d.charge_date);
+                        return (
+                          dDate.getFullYear() === year && dDate.getMonth() === i
+                        );
+                      });
+                      if (chargeDetail) {
+                        monthlyTotal += Number(chargeDetail.monthly_charge);
+                      }
+                    });
                     return (
-                      <td key={monthIndex}>
+                      <td key={i}>
                         {monthlyTotal > 0
                           ? monthlyTotal.toLocaleString("th-TH", {
                               style: "currency",
@@ -431,13 +431,15 @@ export default function TotalPage() {
                   <td>
                     {filteredData
                       .reduce((total, row) => {
+                        const details = row.serviceIDs.flatMap(
+                          (id) => serviceDetails[id] || []
+                        );
                         return (
                           total +
-                          row.monthlyCharges.reduce((sum, charge, index) => {
-                            return row.warrantyMonths.includes(index)
-                              ? sum
-                              : sum + charge;
-                          }, 0)
+                          details.reduce(
+                            (s, d) => s + Number(d.monthly_charge || 0),
+                            0
+                          )
                         );
                       }, 0)
                       .toLocaleString("th-TH", {

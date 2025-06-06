@@ -1,9 +1,5 @@
-/**
- * The Sidebar component in this React application displays navigation links based on user permissions
- * and allows users to switch between different divisions.
- */
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button, Form } from "react-bootstrap";
 import { useUser } from "../context/userContext";
 
@@ -11,6 +7,7 @@ export default function Sidebar() {
   const [isReissueOpen, setReissueOpen] = useState(false);
   const [isTotalOpen, setTotalOpen] = useState(false);
   const { user, activeDivision, setActiveDivision } = useUser();
+  const location = useLocation();
 
   useEffect(() => {
     if (user?.divisionIDs?.length > 0 && !activeDivision) {
@@ -99,8 +96,18 @@ export default function Sidebar() {
                 </li>
               )}
               <div style={{ marginTop: "35px" }}></div>
-              <NavItem to="/service" icon="fas fa-home" label="Dashboard" />
-              <NavItem to="/service/upload" icon="fa fa-file" label="Upload" />
+              <NavItem
+                to="/service"
+                icon="fas fa-home"
+                label="Dashboard"
+                active={location.pathname === "/service"}
+              />
+              <NavItem
+                to="/service/upload"
+                icon="fa fa-file"
+                label="Upload"
+                active={location.pathname === "/service/upload"}
+              />
               <li className={`nav-item ${isReissueOpen ? "menu-open" : ""}`}>
                 <Button
                   href="#"
@@ -165,6 +172,7 @@ export default function Sidebar() {
                   to="/service/setting"
                   icon="fa fa-cog"
                   label="Setting"
+                  active={location.pathname === "/service/setting"}
                 />
               )}
               <div>
@@ -178,9 +186,13 @@ export default function Sidebar() {
   );
 }
 
-const NavItem = ({ to, icon, label, state, children }) => (
+const NavItem = ({ to, icon, label, state, children, active }) => (
   <li className="nav-item">
-    <Link to={to} className="nav-link" state={state}>
+    <Link
+      to={to}
+      className="nav-link"
+      state={state}
+      style={active ? { backgroundColor: "#E5E4E2" } : {}}>
       {icon && <i className={`nav-icon ${icon}`}></i>}
       {label && <p>{label}</p>}
       {children}

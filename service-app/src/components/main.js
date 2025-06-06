@@ -273,7 +273,21 @@ export default function Main() {
     { field: "Type", headerName: "Type", flex: 1, minWidth: 120 },
     { field: "Location", headerName: "Location", flex: 1, minWidth: 120 },
     { field: "divisionName", headerName: "Division", flex: 1, minWidth: 120 },
-    { field: "price", headerName: "Total Price", flex: 1, minWidth: 120 },
+    {
+      field: "price",
+      headerName: "Total Price",
+      flex: 1,
+      minWidth: 120,
+      renderCell: (params) => {
+        const value = parseFloat(params.value);
+        return isNaN(value)
+          ? "0.00"
+          : value.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            });
+      },
+    },
     {
       field: "monthly_charge",
       headerName: "Price/Month",
@@ -281,7 +295,12 @@ export default function Main() {
       minWidth: 120,
       renderCell: (params) => {
         const value = parseFloat(params.value);
-        return isNaN(value) ? "0.00" : value.toFixed(2);
+        return isNaN(value)
+          ? "0.00"
+          : value.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            });
       },
     },
     { field: "vendorName", headerName: "Vendor", flex: 1, minWidth: 120 },
@@ -459,8 +478,8 @@ export default function Main() {
           <Form>
             <Row className="px-3 mt-3">
               <Col md={6} className="mb-3">
+                <FormLabel>Description</FormLabel>
                 <FormControl
-                  placeholder="Description"
                   value={tempFilters.deviceQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -471,11 +490,9 @@ export default function Main() {
                 />
               </Col>
 
-              <Col md={6} className="mb-3" />
-
               <Col md={6} className="mb-3">
+                <FormLabel>S/N</FormLabel>
                 <FormControl
-                  placeholder="S/N"
                   value={tempFilters.serialQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -487,8 +504,8 @@ export default function Main() {
               </Col>
 
               <Col md={6} className="mb-3">
+                <FormLabel>Contract No.</FormLabel>
                 <FormControl
-                  placeholder="Contract No."
                   value={tempFilters.contractQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -500,8 +517,8 @@ export default function Main() {
               </Col>
 
               <Col md={6} className="mb-3">
+                <FormLabel>Brand</FormLabel>
                 <FormControl
-                  placeholder="Brand"
                   value={tempFilters.brandQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -513,8 +530,8 @@ export default function Main() {
               </Col>
 
               <Col md={6} className="mb-3">
+                <FormLabel>Model</FormLabel>
                 <FormControl
-                  placeholder="Model"
                   value={tempFilters.modelQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -526,6 +543,7 @@ export default function Main() {
               </Col>
 
               <Col md={6} className="mb-3">
+                <FormLabel>Type</FormLabel>
                 <Form.Select
                   value={tempFilters.typeQuery}
                   onChange={(e) =>
@@ -544,8 +562,8 @@ export default function Main() {
               </Col>
 
               <Col md={6} className="mb-3">
+                <FormLabel>Location</FormLabel>
                 <FormControl
-                  placeholder="Location"
                   value={tempFilters.locationQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -557,8 +575,8 @@ export default function Main() {
               </Col>
 
               <Col md={6} className="mb-3">
+                <FormLabel>Total Price</FormLabel>
                 <FormControl
-                  placeholder="Total Price"
                   value={tempFilters.totalPriceQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -569,10 +587,10 @@ export default function Main() {
                 />
               </Col>
 
-              <Col md={3} className="mb-3">
+              <Col md={6} className="mb-3">
+                <FormLabel>Min Price</FormLabel>
                 <FormControl
                   type="number"
-                  placeholder="Min Price"
                   value={tempFilters.priceMin}
                   onChange={(e) =>
                     setTempFilters({ ...tempFilters, priceMin: e.target.value })
@@ -580,10 +598,10 @@ export default function Main() {
                 />
               </Col>
 
-              <Col md={3} className="mb-3">
+              <Col md={6} className="mb-3">
+                <FormLabel>Max Price</FormLabel>
                 <FormControl
                   type="number"
-                  placeholder="Max Price"
                   value={tempFilters.priceMax}
                   onChange={(e) =>
                     setTempFilters({ ...tempFilters, priceMax: e.target.value })
@@ -592,6 +610,7 @@ export default function Main() {
               </Col>
 
               <Col md={6} className="mb-3">
+                <FormLabel>Vendor</FormLabel>
                 <FormControl
                   placeholder="Vendor"
                   value={tempFilters.vendorNameQuery}
@@ -605,6 +624,7 @@ export default function Main() {
               </Col>
 
               <Col md={6} className="mb-3">
+                <FormLabel>Status</FormLabel>
                 <Form.Select
                   value={tempFilters.statusQuery}
                   onChange={(e) =>
@@ -692,7 +712,10 @@ export default function Main() {
                 <Button variant="success" onClick={handleApplyFilters}>
                   Search
                 </Button>
-                <Button variant="outline-warning" className="ms-2" onClick={handleClearFilters}>
+                <Button
+                  variant="outline-warning"
+                  className="ms-2"
+                  onClick={handleClearFilters}>
                   Clear
                 </Button>
               </Col>
