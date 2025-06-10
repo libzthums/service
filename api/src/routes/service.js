@@ -200,37 +200,45 @@ router.get("/", async (req, res) => {
       service.contractNo, service.Brand,
       service.Model, service.Type, service.Location, service.price, service.startDate, 
       service.endDate, service.vendorName, service.warrantyCount, service.statusID,
-      division.divisionID,division.divisionName
+      division.divisionID, division.divisionName
     `;
 
     const data = await db.connectAndQuery(query);
 
-    // Fetch status names from ServiceExpireCheck table
     const statusQuery = `SELECT status, statusName FROM ServiceExpireCheck`;
     const statusData = await db.connectAndQuery(statusQuery);
 
-    // Convert status data to a dictionary for easy lookup
     const statusMap = statusData.reduce((acc, row) => {
       acc[row.status] = row.statusName;
       return acc;
     }, {});
 
-    // Add expireStatus and warrantyMonths to each service
-    const updatedData = data.map((row) => {
-      const expireStatus = calculateExpireStatus(row.endDate);
-      const warrantyMonths = calculateWarrantyStatus(
-        row.startDate,
-        row.endDate,
-        row.warrantyCount
-      );
+    const updatedData = await Promise.all(
+      data.map(async (row) => {
+        const expireStatus = calculateExpireStatus(row.endDate);
+        const warrantyMonths = calculateWarrantyStatus(
+          row.startDate,
+          row.endDate,
+          row.warrantyCount
+        );
 
-      return {
-        ...row,
-        expireStatus,
-        expireStatusName: statusMap[expireStatus] || "Unknown",
-        warrantyMonths, // Add warranty months to the response
-      };
-    });
+        // Only update statusID in DB if it has changed
+        if (expireStatus !== row.statusID) {
+          await db.connectAndQuery(`
+            UPDATE Service
+            SET statusID = ${expireStatus}
+            WHERE serviceID = '${row.serviceID}'
+          `);
+        }
+
+        return {
+          ...row,
+          expireStatus,
+          expireStatusName: statusMap[expireStatus] || "Unknown",
+          warrantyMonths,
+        };
+      })
+    );
 
     res.json(updatedData);
   } catch (error) {
@@ -238,6 +246,7 @@ router.get("/", async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+
 
 router.get("/detail/:serviceID", async (req, res) => {
   try {

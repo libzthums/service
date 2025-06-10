@@ -268,8 +268,14 @@ export default function TotalPage() {
         </Button>
       </div>
 
-      <div className="mt-3" style={{ overflowX: "auto", maxHeight: "600px" }}>
-        <Table bordered hover responsive size="lg">
+      <div
+        className="mt-3"
+        style={{
+          overflowX: "auto",
+          maxHeight: "600px",
+          position: "relative",
+        }}>
+        <Table bordered hover size="lg">
           <thead>
             <tr>
               <th
@@ -278,8 +284,9 @@ export default function TotalPage() {
                   minWidth: "200px",
                   position: "sticky",
                   left: 0,
+                  top: 0,
                   background: "#fff",
-                  zIndex: 2,
+                  zIndex: 3,
                 }}>
                 Description
               </th>
@@ -288,7 +295,9 @@ export default function TotalPage() {
                   style={{
                     textAlign: "center",
                     background: "#fff",
-                    zIndex: 1,
+                    zIndex: 2,
+                    position: "sticky",
+                    top: 0,
                   }}>
                   Division
                 </th>
@@ -298,17 +307,34 @@ export default function TotalPage() {
                   textAlign: "center",
                   position: "sticky",
                   left: 200,
+                  top: 0,
                   background: "#fff",
                   zIndex: 2,
                 }}>
                 View
               </th>
               {monthNames.map((month, i) => (
-                <th style={{ textAlign: "center", minWidth: "100px" }} key={i}>
+                <th
+                  style={{
+                    textAlign: "center",
+                    minWidth: "100px",
+                    position: "sticky",
+                    zIndex: 1,
+                    top: 0,
+                  }}
+                  key={i}>
                   {month}
                 </th>
               ))}
-              <th style={{ textAlign: "center" }}>Total</th>
+              <th
+                style={{
+                  textAlign: "center",
+                  position: "sticky",
+                  zIndex: 1,
+                  top: 0,
+                }}>
+                Total
+              </th>
             </tr>
           </thead>
           <tbody>

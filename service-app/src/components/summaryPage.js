@@ -265,8 +265,10 @@ export default function SummaryPage() {
         Total cost from Jan {startYear} to Dec {endYear}
       </h4>
 
-      <div className="mt-3" style={{ overflowX: "auto", maxHeight: "600px" }}>
-        <Table bordered hover responsive>
+      <div
+        className="mt-3"
+        style={{ overflowX: "auto", maxHeight: "600px", position: "relative" }}>
+        <Table bordered hover>
           <thead>
             <tr>
               <th
@@ -275,23 +277,31 @@ export default function SummaryPage() {
                   minWidth: "250px",
                   position: "sticky",
                   left: 0,
+                  top: 0,
                   backgroundColor: "#fff",
                   zIndex: 3,
                 }}>
                 Description
               </th>
               {isAdmin && (
-                <th style={{ textAlign: "center", minWidth: "100px" }}>
+                <th
+                  style={{
+                    textAlign: "center",
+                    background: "#fff",
+                    zIndex: 2,
+                    position: "sticky",
+                    top: 0,
+                  }}>
                   Division
                 </th>
               )}
               <th
                 style={{
                   textAlign: "center",
-                  minWidth: "70px",
                   position: "sticky",
-                  left: "250px",
-                  backgroundColor: "#fff",
+                  left: 250,
+                  top: 0,
+                  background: "#fff",
                   zIndex: 3,
                 }}>
                 View
@@ -299,11 +309,25 @@ export default function SummaryPage() {
               {monthRange.map(({ year, month }) => (
                 <th
                   key={`${year}-${month}`}
-                  style={{ textAlign: "center", minWidth: "100px" }}>
+                  style={{
+                    textAlign: "center",
+                    minWidth: "100px",
+                    position: "sticky",
+                    zIndex: 1,
+                    top: 0,
+                  }}>
                   {monthNames[month]} {year}
                 </th>
               ))}
-              <th style={{ textAlign: "center" }}>Total</th>
+              <th
+                style={{
+                  textAlign: "center",
+                  position: "sticky",
+                  zIndex: 1,
+                  top: 0,
+                }}>
+                Total
+              </th>
             </tr>
           </thead>
           <tbody>
