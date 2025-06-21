@@ -5,6 +5,8 @@ const path = require("path");
 const fs = require("fs");
 const db = require("../db/sql");
 const XLSX = require("xlsx");
+const e = require("express");
+const moment = require("moment");
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
@@ -45,17 +47,85 @@ const upload = multer({
 const generateChargeDates = (startDate, endDate) => {
   const dates = [];
   let currentDate = new Date(startDate);
-  currentDate.setDate(15);
   const end = new Date(endDate);
-  end.setDate(15);
+  console.log("start date ", currentDate.getDate());
 
-  while (currentDate <= end) {
-    dates.push(new Date(currentDate));
-    currentDate.setMonth(currentDate.getMonth() + 1);
+  // if (currentDate.getDate() > 15) {
+  //   // Skip start month, include end month
+  //   //currentDate.setMonth(currentDate.getMonth() + 1);
+  //   while (currentDate <= end) {
+  //     dates.push(new Date(currentDate));
+  //     currentDate.setMonth(currentDate.getMonth() + 1);
+  //   }
+  // } else {
+  //   if (end.getDate() > 15) {
+  //     while (
+  //       moment(currentDate).format("YYYY-MM") < moment(end).format("YYYY-MM")
+  //     ) {
+  //       dates.push(new Date(currentDate));
+  //       currentDate.setMonth(currentDate.getMonth() + 1);
+  //     }
+  //   } else {
+  //     while (
+  //       moment(currentDate).format("YYYY-MM") <= moment(end).format("YYYY-MM")
+  //     ) {
+  //       dates.push(new Date(currentDate));
+  //       currentDate.setMonth(currentDate.getMonth() + 1);
+  //     }
+  //   }
+  //   // Include start month, skip end month
+  // }
+  let count = end.getMonth() - currentDate.getMonth();
+  let month = moment(startDate).format("YYYY-MM");
+  const monthformath = new Date(month);
+  // console.log("monthformath ",monthformath);
+  // console.log("currentDate ",currentDate);
+
+  //console.log("count ",count);
+
+  if (currentDate.getMonth() == end.getMonth()) {
+    if (currentDate.getDate() > 15) {
+      // console.log("1");
+      monthformath.setMonth(monthformath.getMonth() + 1);
+      while (
+        moment(monthformath).format("YYYY-MM") <= moment(end).format("YYYY-MM")
+      ) {
+        dates.push(new Date(monthformath));
+        monthformath.setMonth(monthformath.getMonth() + 1);
+      }
+    } else {
+      // console.log("2");
+      while (
+        moment(monthformath).format("YYYY-MM") < moment(end).format("YYYY-MM")
+      ) {
+        dates.push(new Date(monthformath));
+        monthformath.setMonth(monthformath.getMonth() + 1);
+      }
+    }
+    // while ( moment(monthformath).format("YYYY-MM") < moment(end).format("YYYY-MM")) {
+    //       dates.push(new Date(monthformath));
+    //       monthformath.setMonth(monthformath.getMonth() + 1);
+    //     }
+  } else {
+    if (count > 1) {
+      while (
+        moment(monthformath).format("YYYY-MM") < moment(end).format("YYYY-MM")
+      ) {
+        dates.push(new Date(monthformath));
+        monthformath.setMonth(monthformath.getMonth() + 1);
+      }
+    } else {
+      while (
+        moment(monthformath).format("YYYY-MM") <= moment(end).format("YYYY-MM")
+      ) {
+        dates.push(new Date(monthformath));
+        monthformath.setMonth(monthformath.getMonth() + 1);
+      }
+    }
   }
+
   return dates;
 };
-
 
 // Function to calculate expireStatus based on the endDate
 const calculateExpireStatus = (endDate) => {
@@ -130,42 +200,70 @@ router.get("/", async (req, res) => {
       service.contractNo, service.Brand,
       service.Model, service.Type, service.Location, service.price, service.startDate, 
       service.endDate, service.vendorName, service.warrantyCount, service.statusID,
-      division.divisionID,division.divisionName
+      division.divisionID, division.divisionName
     `;
 
     const data = await db.connectAndQuery(query);
 
-    // Fetch status names from ServiceExpireCheck table
     const statusQuery = `SELECT status, statusName FROM ServiceExpireCheck`;
     const statusData = await db.connectAndQuery(statusQuery);
 
-    // Convert status data to a dictionary for easy lookup
     const statusMap = statusData.reduce((acc, row) => {
       acc[row.status] = row.statusName;
       return acc;
     }, {});
 
-    // Add expireStatus and warrantyMonths to each service
-    const updatedData = data.map((row) => {
-      const expireStatus = calculateExpireStatus(row.endDate);
-      const warrantyMonths = calculateWarrantyStatus(
-        row.startDate,
-        row.endDate,
-        row.warrantyCount
-      );
+    const updatedData = await Promise.all(
+      data.map(async (row) => {
+        const expireStatus = calculateExpireStatus(row.endDate);
+        const warrantyMonths = calculateWarrantyStatus(
+          row.startDate,
+          row.endDate,
+          row.warrantyCount
+        );
 
-      return {
-        ...row,
-        expireStatus,
-        expireStatusName: statusMap[expireStatus] || "Unknown",
-        warrantyMonths, // Add warranty months to the response
-      };
-    });
+        // Only update statusID in DB if it has changed
+        if (expireStatus !== row.statusID) {
+          await db.connectAndQuery(`
+            UPDATE Service
+            SET statusID = ${expireStatus}
+            WHERE serviceID = '${row.serviceID}'
+          `);
+        }
+
+        return {
+          ...row,
+          expireStatus,
+          expireStatusName: statusMap[expireStatus] || "Unknown",
+          warrantyMonths,
+        };
+      })
+    );
 
     res.json(updatedData);
   } catch (error) {
     console.error("Error fetching services:", error);
     res.status(500).send("Server Error");
+  }
+});
+
+
+router.get("/detail/:serviceID", async (req, res) => {
+  try {
+    const { serviceID } = req.params;
+    const query = `
+      SELECT charge_date, monthly_charge
+      FROM ServiceDetail
+      WHERE serviceID = @serviceID
+      ORDER BY charge_date
+    `;
+    const pool = await db.connectDB();
+    const request = pool.request();
+    request.input("serviceID", db.sql.Int, serviceID);
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch service details" });
   }
 });
 

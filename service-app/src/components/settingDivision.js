@@ -56,7 +56,7 @@ export default function SettingDivision() {
       });
       fetchData();
     } catch (error) {
-      alert("Failed to set default division.");
+      alert("Failed to set default division. Please try again.");
     }
   };
 
@@ -85,8 +85,12 @@ export default function SettingDivision() {
       setSelectedUser(null);
       fetchData();
     } catch (error) {
-      console.error("Error adding division to user:", error);
-      alert("Failed to add division to user. Please try again.");
+      if (error.response && error.response.status === 409) {
+        alert("User already has this division.");
+      } else {
+        alert("Failed to add division to user. Please try again.");
+        console.error("Error adding division to user:", error);
+      }
     }
   };
 
@@ -247,8 +251,26 @@ export default function SettingDivision() {
                           onChange={() =>
                             handleSetDefaultDivision(user.userID, d.divisionID)
                           }
-                          disabled={user.defaultDivision === d.divisionID}
-                          label={d.divisionName}
+                          // disabled={user.defaultDivision === d.divisionID}
+                          label={
+                            <span
+                              style={{
+                                color:
+                                  user.defaultDivision === d.divisionID
+                                    ? "inherit"
+                                    : "#adb5bd", // gray for not selected
+                                opacity:
+                                  user.defaultDivision === d.divisionID
+                                    ? 1
+                                    : 0.7,
+                                cursor:
+                                  user.defaultDivision === d.divisionID
+                                    ? "default"
+                                    : "not-allowed",
+                              }}>
+                              {d.divisionName}
+                            </span>
+                          }
                         />
                       </div>
                     ))}

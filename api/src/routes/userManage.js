@@ -76,18 +76,32 @@ router.post("/addDivision", async (req, res) => {
   }
 
   try {
-    // Query to add the division to the userDivision table
-    const query = `
+    const pool = await connectDB();
+
+    // Check if the user already has this division
+    const checkQuery = `
+      SELECT 1 FROM userDivision WHERE userID = @userID AND divisionID = @divisionID
+    `;
+    const checkResult = await pool
+      .request()
+      .input("userID", userID)
+      .input("divisionID", divisionID)
+      .query(checkQuery);
+
+    if (checkResult.recordset.length > 0) {
+      return res.status(409).send("User already has this division");
+    }
+
+    // Insert if not exists
+    const insertQuery = `
       INSERT INTO userDivision (userID, divisionID)
       VALUES (@userID, @divisionID)
     `;
-
-    const pool = await connectDB();
     await pool
       .request()
       .input("userID", userID)
       .input("divisionID", divisionID)
-      .query(query);
+      .query(insertQuery);
 
     res.status(200).send("Division added to user successfully");
   } catch (error) {

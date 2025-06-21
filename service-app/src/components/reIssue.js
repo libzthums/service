@@ -321,7 +321,21 @@ export default function Reissue() {
     { field: "Type", headerName: "Type", flex: 1, minWidth: 100 },
     { field: "Location", headerName: "Location", flex: 1, minWidth: 100 },
     { field: "divisionName", headerName: "Division", flex: 1, minWidth: 100 },
-    { field: "price", headerName: "Total Price", flex: 1, minWidth: 100 },
+    {
+      field: "price",
+      headerName: "Total Price",
+      flex: 1,
+      minWidth: 120,
+      renderCell: (params) => {
+        const value = parseFloat(params.value);
+        return isNaN(value)
+          ? "0.00"
+          : value.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            });
+      },
+    },
     {
       field: "vendorName",
       headerName: "Vendor",
@@ -852,27 +866,25 @@ export default function Reissue() {
               {/* Document Tabs Section */}
               <Row className="mt-4">
                 <Col>
-                  <Tabs
-                    defaultActiveKey="pr"
-                    id="document-tabs"
-                    className="mb-3"
-                    variant="pills">
+                  <Tabs className="mb-3">
                     <Tab
                       eventKey="pr"
                       title="PR"
-                      disabled={prDocs.length === 0}
+                      tabClassName={
+                        prDocs.length > 0 ? "bg-primary" : "bg-secondary"
+                      }
                       className="border-top border-bottom border-secondary border-2">
                       {prDocs.length > 0 ? (
                         <ul>
                           {prDocs.map((doc, index) => (
                             <li key={index}>
-                              <Button
+                              <a
                                 style={{ cursor: "pointer" }}
                                 onClick={() => openFile(doc.DocName)}
                                 target="_blank"
                                 rel="noopener noreferrer">
                                 {doc.DocName}
-                              </Button>
+                              </a>
                             </li>
                           ))}
                         </ul>
@@ -884,19 +896,21 @@ export default function Reissue() {
                     <Tab
                       eventKey="po"
                       title="PO"
-                      disabled={poDocs.length === 0}
+                      tabClassName={
+                        poDocs.length > 0 ? "bg-primary" : "bg-secondary"
+                      }
                       className="border-top border-bottom border-secondary border-2">
                       {poDocs.length > 0 ? (
                         <ul>
                           {poDocs.map((doc, index) => (
                             <li key={index}>
-                              <Button
+                              <a
                                 style={{ cursor: "pointer" }}
                                 onClick={() => openFile(doc.DocName)}
                                 target="_blank"
                                 rel="noopener noreferrer">
                                 {doc.DocName}
-                              </Button>
+                              </a>
                             </li>
                           ))}
                         </ul>
@@ -908,19 +922,21 @@ export default function Reissue() {
                     <Tab
                       eventKey="contract"
                       title="Contract"
-                      disabled={contractDocs.length === 0}
+                      tabClassName={
+                        contractDocs.length > 0 ? "bg-primary" : "bg-secondary"
+                      }
                       className="border-top border-bottom border-secondary border-2">
                       {contractDocs.length > 0 ? (
                         <ul>
                           {contractDocs.map((doc, index) => (
                             <li key={index}>
-                              <Button
+                              <a
                                 style={{ cursor: "pointer" }}
                                 onClick={() => openFile(doc.DocName)}
                                 target="_blank"
                                 rel="noopener noreferrer">
                                 {doc.DocName}
-                              </Button>
+                              </a>
                             </li>
                           ))}
                         </ul>
@@ -931,15 +947,19 @@ export default function Reissue() {
                   </Tabs>
                 </Col>
               </Row>
+              <Row>
+                <Col className="text-center mt-3">
+                  <Button variant="success" onClick={handleSaveChanges}>
+                    Save Changes
+                  </Button>
+                </Col>
+              </Row>
             </Form>
           )}
         </Modal.Body>
-        <Modal.Footer className="justify-content-center">
-          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+        <Modal.Footer>
+          <Button variant="danger" onClick={() => setShowEditModal(false)}>
             Close
-          </Button>
-          <Button variant="success" onClick={handleSaveChanges}>
-            Save Changes
           </Button>
         </Modal.Footer>
       </Modal>
@@ -1185,17 +1205,19 @@ export default function Reissue() {
                   </Table>
                 </div>
               )}
+              <Row>
+                <Col className="mt-3 text-center">
+                  <Button variant="success" onClick={handleReissueSave}>
+                    Reissue
+                  </Button>
+                </Col>
+              </Row>
             </Form>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowReissueModal(false)}>
+          <Button variant="danger" onClick={() => setShowReissueModal(false)}>
             Close
-          </Button>
-          <Button variant="success" onClick={handleReissueSave}>
-            Reissue
           </Button>
         </Modal.Footer>
       </Modal>
@@ -1213,8 +1235,8 @@ export default function Reissue() {
           <Form>
             <Row className="px-3 mt-3">
               <Col md={6} className="mb-3">
+                <FormLabel>Description</FormLabel>
                 <FormControl
-                  placeholder="Description"
                   value={tempFilters.deviceQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -1224,10 +1246,9 @@ export default function Reissue() {
                   }
                 />
               </Col>
-              <Col md={6} className="mb-3" />
               <Col md={6} className="mb-3">
+                <FormLabel>S/N</FormLabel>
                 <FormControl
-                  placeholder="S/N"
                   value={tempFilters.serialQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -1238,8 +1259,8 @@ export default function Reissue() {
                 />
               </Col>
               <Col md={6} className="mb-3">
+                <FormLabel>Contract No.</FormLabel>
                 <FormControl
-                  placeholder="Contract No."
                   value={tempFilters.contractQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -1250,6 +1271,7 @@ export default function Reissue() {
                 />
               </Col>
               <Col md={6} className="mb-3">
+                <FormLabel>Brand</FormLabel>
                 <FormControl
                   placeholder="Brand"
                   value={tempFilters.brandQuery}
@@ -1262,6 +1284,7 @@ export default function Reissue() {
                 />
               </Col>
               <Col md={6} className="mb-3">
+                <FormLabel>Modal</FormLabel>
                 <FormControl
                   placeholder="Model"
                   value={tempFilters.modelQuery}
@@ -1274,6 +1297,7 @@ export default function Reissue() {
                 />
               </Col>
               <Col md={6} className="mb-3">
+                <FormLabel>Type</FormLabel>
                 <Form.Select
                   value={tempFilters.typeQuery}
                   onChange={(e) =>
@@ -1291,8 +1315,8 @@ export default function Reissue() {
                 </Form.Select>
               </Col>
               <Col md={6} className="mb-3">
+                <FormLabel>Location</FormLabel>
                 <FormControl
-                  placeholder="Location"
                   value={tempFilters.locationQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -1303,8 +1327,8 @@ export default function Reissue() {
                 />
               </Col>
               <Col md={6} className="mb-3">
+                <FormLabel>Total Price</FormLabel>
                 <FormControl
-                  placeholder="Total Price"
                   value={tempFilters.totalPriceQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -1314,20 +1338,20 @@ export default function Reissue() {
                   }
                 />
               </Col>
-              <Col md={3} className="mb-3">
+              <Col md={6} className="mb-3">
+                <FormLabel>Min Price</FormLabel>
                 <FormControl
                   type="number"
-                  placeholder="Min Price"
                   value={tempFilters.priceMin}
                   onChange={(e) =>
                     setTempFilters({ ...tempFilters, priceMin: e.target.value })
                   }
                 />
               </Col>
-              <Col md={3} className="mb-3">
+              <Col md={6} className="mb-3">
+                <FormLabel>Max Price</FormLabel>
                 <FormControl
                   type="number"
-                  placeholder="Max Price"
                   value={tempFilters.priceMax}
                   onChange={(e) =>
                     setTempFilters({ ...tempFilters, priceMax: e.target.value })
@@ -1335,8 +1359,8 @@ export default function Reissue() {
                 />
               </Col>
               <Col md={6} className="mb-3">
+                <FormLabel>Vendor</FormLabel>
                 <FormControl
-                  placeholder="Vendor"
                   value={tempFilters.vendorNameQuery}
                   onChange={(e) =>
                     setTempFilters({
@@ -1413,16 +1437,23 @@ export default function Reissue() {
                 </FormGroup>
               </Col>
             </Row>
+            <Row>
+              <Col className="text-center">
+                <Button variant="success" onClick={handleApplyFilters}>
+                  Search
+                </Button>
+                <Button
+                  variant="outline-warning"
+                  className="ms-2"
+                  onClick={handleClearFilters}>
+                  Clear
+                </Button>
+              </Col>
+            </Row>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="primary" onClick={handleApplyFilters}>
-            Apply
-          </Button>
-          <Button variant="outline-danger" onClick={handleClearFilters}>
-            Clear
-          </Button>
-          <Button variant="secondary" onClick={() => setShowFilterModal(false)}>
+          <Button variant="danger" onClick={() => setShowFilterModal(false)}>
             Cancel
           </Button>
         </Modal.Footer>
